@@ -1,10 +1,13 @@
 // gateways/mqtt_gateway.js
 "use strict";
-const aedes = require("aedes")();
-const websocketStream = require("websocket-stream");
+const mqtt = require("mqtt");
 const db = require("../config/db"); 
 
-const TOPIC_GATEWAY = process.env.MQTT_TOPIC_GATEWAY || "telemetry/push";
+const CONFIG = {
+  host: process.env.MQTT_HOST || "14.225.252.85",
+  port: Number(process.env.MQTT_PORT) || 1883,
+  topic: "telemetry/push" // Topic riêng biệt cho Gateway mới, không lo trùng luồng fetch cũ
+};
 
 function formatTimestampToICT(rawTs) {
   if (!rawTs) return null;
@@ -12,7 +15,6 @@ function formatTimestampToICT(rawTs) {
   return cleaned.includes("+") ? cleaned : `${cleaned}+07`;
 }
 
-// Lõi xử lý ghi Postgres khi nhận được gói tin
 async function handleMqttGatewayPush(payload) {
   const { station_id, display_name, timestamp, metrics } = payload;
   if (!station_id || !timestamp || !metrics || typeof metrics !== 'object') return;
@@ -29,7 +31,7 @@ async function handleMqttGatewayPush(payload) {
     await dbClient.query(`
       INSERT INTO public.logger_stations (station_id, display_name, description) 
       VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;
-    `, [cleanStationId, finalDisplayName, 'Tự động tạo từ Gateway MQTT WebSocket']);
+    `, [cleanStationId, finalDisplayName, 'Tự động tạo từ Gateway MQTT Client']);
 
     const upsertLatestQuery = `
       INSERT INTO public.logger_latest (logger_id, tag_key, data_ts, value, current_ts) 
@@ -51,34 +53,41 @@ async function handleMqttGatewayPush(payload) {
       await dbClient.query(insertReadingsQuery, [cleanStationId, cleanTagKey, formattedTs, currentSaveTs, cleanValue]);
       processedCount++;
     }
-    console.log(`📥 [MQTT_WS_GATEWAY] Tự động đồng bộ trạm thành công: '${cleanStationId}' (+${processedCount} thông số)`);
+    console.log(`📥 [MQTT_GATEWAY_NEW] Đồng bộ trạm thành công: '${cleanStationId}' (+${processedCount} số)`);
   } catch (error) {
-    console.error("❌ [MQTT_WS_GATEWAY][ERROR]", error.message);
+    console.error("❌ [MQTT_GATEWAY_NEW][ERROR]", error.message);
   } finally {
     if (dbClient) dbClient.release();
   }
 }
 
-// Lắng nghe sự kiện bốc gói tin từ Broker nhúng nội bộ
-aedes.on("publish", async (packet, client) => {
-  if (packet.topic === TOPIC_GATEWAY) {
+function startMqttGatewayListener() {
+  // Tạo Client kết nối ra Broker ngoài ổn định tuyệt đối
+  const client = mqtt.connect(`mqtt://${CONFIG.host}:${CONFIG.port}`, { 
+    clean: true, 
+    connectTimeout: 10000, 
+    reconnectPeriod: 4000,
+    clientId: `gateway_client_push_${Math.random().toString(16).substr(2, 6)}`
+  });
+  
+  client.on("connect", () => { 
+    console.log(`📡 [MQTT_GATEWAY_NEW] Kênh hứng dữ liệu độc lập đã online. Trực sẵn kênh: "${CONFIG.topic}"`);
+    client.subscribe(CONFIG.topic); 
+  });
+
+  client.on("message", async (topic, message) => {
+    if (topic !== CONFIG.topic) return;
     try {
-      const rawStr = packet.payload.toString("utf8").trim();
+      const rawStr = message.toString("utf8").trim();
       if (rawStr.startsWith("{")) {
         await handleMqttGatewayPush(JSON.parse(rawStr));
       }
-    } catch (err) {
-      // Khử lỗi cú pháp JSON
-    }
-  }
-});
+    } catch (err) {}
+  });
 
-/**
- * 🟢 KÍCH HOẠT TÍCH HỢP ĐỘC LẬP VÀO HTTP SERVER CỦA APP.JS
- */
-function attachMqttOverWebsheet(server) {
-  websocketStream.createServer({ server: server }, aedes.handle);
-  console.log(`📡 [MQTT_WS_GATEWAY] Bộ chuyển đổi MQTT over WebSockets đã chèn vào Express thành công!`);
+  client.on("error", (err) => {
+    console.error("❌ [MQTT_GATEWAY_NEW] Lỗi Client:", err.message);
+  });
 }
 
-module.exports = { attachMqttOverWebsheet };
+module.exports = { startMqttGatewayListener };

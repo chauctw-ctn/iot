@@ -26,7 +26,7 @@ const PARAMETER_MAP = {
 };
 
 let cachedToken = null; let tokenExpiry = null;
-let monreHistoryQueue = []; // Hàng đợi RAM gom dữ liệu lịch sử
+let monreHistoryQueue = []; 
 
 function getCleanPermitNumber(projectName) {
     if (!projectName) return "UNKNOWN";
@@ -38,6 +38,20 @@ function getCleanPermitNumber(projectName) {
         }
     }
     return "UNKNOWN";
+}
+
+// 🟢 THÊM MỚI: Hàm làm sạch tên trạm thô (Xóa dấu tiếng Việt, ký tự lạ, chuyển sang viết thường và nối gạch dưới)
+function getCleanStationSlug(rawStationName) {
+    if (!rawStationName) return "unnamed";
+    return String(rawStationName)
+        .trim()
+        .normalize('NFD')                     // Tách các dấu tiếng Việt ra khỏi chữ gốc
+        .replace(/[\u0300-\u036f]/g, '')     // Xóa bỏ toàn bộ các dấu tiếng Việt vừa tách
+        .replace(/[đĐ]/g, 'd')                // Chuyển chữ đ/Đ thành d
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_')           // Ký tự đặc biệt hoặc khoảng trắng biến thành gạch dưới
+        .replace(/_+/g, '_')                  // Gom nhiều dấu gạch dưới liên tiếp thành 1 dấu
+        .replace(/^_+|_+$/g, '');             // Cắt bỏ gạch dưới thừa ở đầu/cuối chuỗi
 }
 
 function formatTimestampRounded(ts) {
@@ -79,7 +93,6 @@ async function getToken() {
     }
 }
 
-// 🌐 CHU KỲ 1: FETCH VÀ UPSERT BẢNG LATEST TỨC THỜI
 async function fetchMonreData() {
     console.log(`\n☁️  [MONRE][FETCH] Khởi chạy chu kỳ quét API (${CONFIG.FETCH_INTERVAL_SECONDS}s)...`);
     let dbClient;
@@ -102,17 +115,17 @@ async function fetchMonreData() {
             if (!rawLatestMap[attr.tram][attr.chiso]) rawLatestMap[attr.tram][attr.chiso] = attr;
         });
 
-        const permitCounters = {}; const finalizedDataBatch = [];
+        const finalizedDataBatch = [];
         for (const rawStationName in rawLatestMap) {
             const firstParamKey = Object.keys(rawLatestMap[rawStationName])[0];
             const sampleAttr = rawLatestMap[rawStationName][firstParamKey];
+            
             const cleanPermit = getCleanPermitNumber(sampleAttr.congtrinh);
-
-            if (!permitCounters[cleanPermit]) permitCounters[cleanPermit] = 0;
-            permitCounters[cleanPermit]++;
-
-            const stationCode = String(permitCounters[cleanPermit]).padStart(2, '0');
-            const mappedStationName = `${CONFIG.SOURCE}_${cleanPermit}_gs${stationCode}`;
+            // 🟢 THAY ĐỔI: Lấy tên trạm thật từ API (`rawStationName`), đưa qua hàm làm sạch slug
+            const cleanStationSlug = getCleanStationSlug(rawStationName);
+            
+            // Kết quả sinh mã mới dạng: monre_393_gieng_khoan_01 thay vì monre_393_gs01
+            const mappedStationName = `${CONFIG.SOURCE}_${cleanPermit}_${cleanStationSlug}`;
 
             for (const paramName in rawLatestMap[rawStationName]) {
                 const targetAttr = rawLatestMap[rawStationName][paramName];
@@ -123,7 +136,10 @@ async function fetchMonreData() {
                 if (parsedValue === null) continue;
 
                 finalizedDataBatch.push({
-                    stationId: mappedStationName, tagKey: standardParam,
+                    stationId: mappedStationName, 
+                    // Giữ lại tên gốc thô để làm display_name khi tạo trạm tự động
+                    rawStationName: rawStationName.trim(), 
+                    tagKey: standardParam,
                     dataTs: formatTimestampRounded(targetAttr.thoigiando), value: parsedValue
                 });
             }
@@ -142,7 +158,13 @@ async function fetchMonreData() {
 
         for (const record of finalizedDataBatch) {
             await dbClient.query(upsertLatestQuery, [record.stationId, record.tagKey, record.dataTs, record.value, currentFetchTs]);
-            await dbClient.query(`INSERT INTO logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [record.stationId, `Trạm ${record.stationId}`, 'Khởi tạo tự động từ luồng API MONRE']);
+            
+            // 🟢 CẢI TIẾN: Điền thẳng tên gốc tiếng Việt thô (Ví dụ: "Giếng Khoan Số 01") vào trường display_name cho trực quan trên UI
+            await dbClient.query(`
+                INSERT INTO logger_stations (station_id, display_name, description) 
+                VALUES ($1, $2, $3) 
+                ON CONFLICT (station_id) DO NOTHING;
+            `, [record.stationId, record.rawStationName, 'Khởi tạo tự động từ luồng API MONRE']);
 
             monreHistoryQueue.push({ logger_id: record.stationId, tag_key: record.tagKey, data_ts: record.dataTs });
 
@@ -162,7 +184,6 @@ async function fetchMonreData() {
     }
 }
 
-// 💾 CHU KỲ 2: XẢ HÀNG ĐỢI GHI LỊCH SỬ VÀO LOGGER_READINGS
 async function flushMonreHistory() {
     if (monreHistoryQueue.length === 0) return;
     const startLogTime = Date.now();

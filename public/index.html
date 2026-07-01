@@ -7,6 +7,7 @@
   <link rel="icon" href="data:,">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-slate-100 min-h-screen p-6 space-y-6">
 
@@ -26,18 +27,18 @@
         <thead>
           <tr class="bg-slate-800 text-white text-sm font-semibold uppercase tracking-wider">
             <th class="p-3 text-center w-12">STT</th>
-            <th class="p-3 w-36">Trạm Nhận Tag</th>
-            <th class="p-3 w-36">Tên Hiển Thị (Map)</th>
-            <th class="p-3 w-44">Tọa Độ (Lat, Lng)</th>
-            <th class="p-3 w-80">Cấu Hình Ngưỡng Cảnh Báo Gốc & Nhận</th>
-            <th class="p-3 w-36">Trạm Cho (Nguồn)</th>
-            <th class="p-3 w-44">Chọn Tag Ánh Xạ</th>
-            <th class="p-3 text-center w-24">Hành động</th>
+            <th class="p-3 w-32">Trạm Nhận Tag</th>
+            <th class="p-3 w-32">Tên Hiển Thị (Map)</th>
+            <th class="p-3 w-40">Tọa Độ (Lat, Lng)</th>
+            <th class="p-3 w-28 text-center">Trạng Thái</th> <th class="p-3 w-28 text-center">Timeout (Phút)</th> <th class="p-3 w-64">Cấu Hình Ngưỡng Cảnh Báo Gốc & Nhận</th>
+            <th class="p-3 w-32">Trạm Cho (Nguồn)</th>
+            <th class="p-3 w-40">Chọn Tag Ánh Xạ</th>
+            <th class="p-3 text-center w-36">Hành động</th>
           </tr>
         </thead>
         <tbody id="dynamicMappingTable" class="divide-y divide-gray-200 text-sm text-gray-700">
           <tr>
-            <td colspan="8" class="p-4 text-center italic text-gray-400">Đang tải cấu trúc dữ liệu trạm từ hệ thống...</td>
+            <td colspan="10" class="p-4 text-center italic text-gray-400">Đang tải cấu trúc dữ liệu trạm từ hệ thống...</td>
           </tr>
         </tbody>
       </table>
@@ -82,6 +83,18 @@
     let selectedSourcesMap = {};
     let chartInstance = null;
 
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      }
+    });
+
     document.addEventListener("DOMContentLoaded", async () => {
       initDefaultTimeFilters();
       await fetchOverview();
@@ -101,6 +114,20 @@
     function resetAndFetch() {
       selectedSourcesMap = {};
       fetchOverview();
+    }
+
+    // 🟢 THÊM MỚI: Tính thời gian tương đối từ mốc đồng bộ
+    function getRelativeTimeString(currentTsStr) {
+      if (!currentTsStr) return 'Không có dữ liệu';
+      const diffMs = Date.now() - new Date(currentTsStr).getTime();
+      const diffSecs = Math.floor(diffMs / 1000);
+      
+      if (diffSecs < 60) return 'Vừa xong';
+      const diffMins = Math.floor(diffSecs / 60);
+      if (diffMins < 60) return `${diffMins} phút trước`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours} giờ trước`;
+      return new Date(currentTsStr).toLocaleDateString('vi-VN');
     }
 
     async function fetchOverview() {
@@ -123,7 +150,7 @@
           syncChartDropdowns();
         }
       } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500 font-medium bg-red-50">Lỗi kết nối: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500 font-medium bg-red-50">Lỗi kết nối: ${error.message}</td></tr>`;
       }
     }
 
@@ -137,7 +164,7 @@
       tbody.innerHTML = '';
 
       if (overviewData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Không tìm thấy dữ liệu logger khả dụng.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-gray-400 italic">Không tìm thấy dữ liệu logger khả dụng.</td></tr>`;
         return;
       }
 
@@ -156,8 +183,26 @@
         const savedSourceId = selectedSourcesMap[targetId] || "";
         const isCurrentlyMappedStation = hasMappedTags(targetStation);
 
+        // 🟢 ĐỔI THÀNH PHÚT: Lấy cấu hình phút từ DB (Nếu DB lưu giây thì chia 60, mặc định là 5 phút)
+        const timeoutMinutes = targetStation.offline_timeout_secs 
+          ? Math.floor(targetStation.offline_timeout_secs / 60) 
+          : 5;
+
+        // 1. Tính toán độ trễ mạng thực tế (Đơn vị: Giây)
+        const networkDelaySecs = (targetStation.current_ts && targetStation.data_ts) 
+          ? Math.floor((new Date(targetStation.current_ts).getTime() - new Date(targetStation.data_ts).getTime()) / 1000)
+          : 0;
+
+        // 2. Quy đổi độ trễ mạng ra phút để hiển thị và so sánh
+        const delayMinutes = Math.floor(networkDelaySecs / 60);
+        const delayString = delayMinutes > 0 ? `(API trễ ${delayMinutes}p)` : '(Thời gian thực)';
+
+        // 🟢 THUẬT TOÁN ĐÃ ĐỔI SANG PHÚT: So sánh phút trễ thực tế với số phút cài đặt
+        const isOnline = delayMinutes <= timeoutMinutes;
+
         const tr = document.createElement('tr');
-        tr.className = `transition align-top hover:bg-slate-50 ${isCurrentlyMappedStation ? 'bg-orange-50/10' : ''}`;
+        tr.id = `row-${targetId}`;
+        tr.className = `transition-all duration-500 align-top hover:bg-slate-50 ${isCurrentlyMappedStation ? 'bg-orange-50/10' : ''}`;
 
         tr.innerHTML = `
           <td class="p-3 text-center font-medium text-gray-500 border-r">${index + 1}</td>
@@ -166,6 +211,22 @@
           <td class="p-3 border-r space-y-1">
             <div class="flex items-center gap-1"><span class="text-[10px] text-gray-400 font-bold w-6">LAT:</span><input type="number" step="any" id="lat_${targetId}" value="${targetStation.lat !== null ? targetStation.lat : ''}" placeholder="Vĩ độ" class="w-full p-0.5 border rounded text-xs focus:border-indigo-500 bg-white"></div>
             <div class="flex items-center gap-1"><span class="text-[10px] text-gray-400 font-bold w-6">LNG:</span><input type="number" step="any" id="lng_${targetId}" value="${targetStation.lng !== null ? targetStation.lng : ''}" placeholder="Kinh độ" class="w-full p-0.5 border rounded text-xs focus:border-indigo-500 bg-white"></div>
+          </td>
+          
+          <td class="p-3 border-r text-center font-medium bg-slate-50/30">
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold shadow-sm ${isOnline ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}">
+              ${isOnline ? '🟢 Online' : '🔴 Offline'}
+            </span>
+            <div class="text-[10px] text-slate-500 mt-1.5 font-semibold" title="Thời gian Server lưu nhận dữ liệu gần nhất">
+              Hứng: ${getRelativeTimeString(targetStation.current_ts)}
+            </div>
+            <div class="text-[9px] mt-0.5 font-bold ${isOnline ? 'text-amber-600' : 'text-red-600 animate-pulse'}" title="Khoảng lệch giữa mốc đo vật lý và mốc nhận">
+              ${delayString}
+            </div>
+          </td>
+
+          <td class="p-3 border-r text-center">
+            <input type="number" id="timeout_${targetId}" value="${timeoutMinutes}" class="w-full p-1 border rounded text-xs text-center font-bold focus:border-indigo-500 bg-white" placeholder="Phút...">
           </td>
         `;
 
@@ -229,9 +290,15 @@
         loadSourceTagsForRow(savedSourceId, targetId, tagsContainer);
 
         const tdAction = document.createElement('td');
-        tdAction.className = "p-3 text-center";
-        tdAction.innerHTML = `<button class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs px-4 py-2 rounded shadow transition w-full">Lưu Hàng</button>`;
-        tdAction.querySelector('button').onclick = () => saveRowMapping(targetId, select.value, tr);
+        tdAction.className = "p-3 text-center space-y-2";
+        tdAction.innerHTML = `
+          <button onclick="saveRowMapping('${targetId}', '${select.value}', this.parentElement.parentElement)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs px-3 py-1.5 rounded shadow transition w-full block">
+            💾 Lưu Hàng
+          </button>
+          <button onclick="deleteStation('${targetId}')" class="bg-red-500 hover:bg-red-600 text-white font-medium text-xs px-3 py-1.5 rounded shadow transition w-full block">
+            🗑️ Xóa Trạm
+          </button>
+        `;
         tr.appendChild(tdAction);
 
         tbody.appendChild(tr);
@@ -268,12 +335,16 @@
       }
     }
 
+    // 🟢 CẬP NHẬT: Gửi thêm thông số timeout cấu hình từ UI về API
     async function saveRowMapping(targetStationId, sourceLoggerId, rowElement) {
       const display_name = document.getElementById(`displayName_${targetStationId}`).value;
       const lat = document.getElementById(`lat_${targetStationId}`).value;
       const lng = document.getElementById(`lng_${targetStationId}`).value;
-
+      
+      const timeoutInput = document.getElementById(`timeout_${targetStationId}`).value;
+      const offline_timeout_secs = timeoutInput ? parseInt(timeoutInput, 10) * 60 : 300;
       const checkboxes = document.querySelectorAll(`input[name="sourceTags_${targetStationId}"]:checked`);
+      
       const selectedTags = Array.from(checkboxes).map(cb => cb.value);
 
       const thresholdContainers = rowElement.querySelectorAll('.row-tag-threshold-container');
@@ -295,17 +366,45 @@
             source: "WEB_MATRIX_CONFIG",
             source_logger_id: sourceLoggerId && sourceLoggerId !== "" ? sourceLoggerId : null, 
             source_tags: sourceLoggerId ? selectedTags : [],     
-            target_station_id: targetStationId, display_name, lat, lng, alert_thresholds
+            target_station_id: targetStationId, display_name, lat, lng, alert_thresholds,
+            offline_timeout_secs // 🟢 Gửi kèm tham số lên Controller
           })
         });
 
         const result = await response.json();
         if (result.success) {
-          alert(`Lưu thành công thông tin trạm [${targetStationId}]!`);
+          Toast.fire({ icon: 'success', title: `Đã cập nhật cấu hình trạm [${targetStationId}]` });
           await fetchOverview(); 
         }
       } catch (error) {
-        alert("Thất bại: " + error.message);
+        Toast.fire({ icon: 'error', title: 'Lỗi đồng bộ cấu hình' });
+      }
+    }
+
+    async function deleteStation(stationId) {
+      try {
+        const response = await fetch(`/api/stations/${stationId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          Toast.fire({ icon: 'success', title: `Đã xóa sạch trạm [${stationId}] khỏi hệ thống` });
+          
+          const targetRow = document.getElementById(`row-${stationId}`);
+          if (targetRow) {
+            targetRow.style.opacity = "0";
+            targetRow.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+            setTimeout(() => { resetAndFetch(); }, 500);
+          } else {
+            resetAndFetch();
+          }
+        } else {
+          Toast.fire({ icon: 'error', title: result.message || 'Xóa trạm thất bại' });
+        }
+      } catch (error) {
+        Toast.fire({ icon: 'error', title: 'Mất kết nối tới máy chủ' });
       }
     }
 
@@ -350,10 +449,19 @@
       const startTime = document.getElementById('chartStartTime').value;
       const endTime = document.getElementById('chartEndTime').value;
 
-      if (!stationId) { alert("Vui lòng chọn trạm cần xem!"); return; }
+      if (!stationId) { 
+        Toast.fire({ icon: 'info', title: 'Vui lòng chọn trạm cần xem đồ thị' });
+        return; 
+      }
 
-      let tagsToFetch = selectedTag === "ALL" ? Object.keys(overviewData.find(s => s.logger_id === stationId).tags || {}) : [selectedTag];
-      if (tagsToFetch.length === 0) { alert("Không tìm thấy tag số liệu."); return; }
+      const targetStation = overviewData.find(s => s.logger_id === stationId);
+      if (!targetStation) return;
+
+      let tagsToFetch = selectedTag === "ALL" ? Object.keys(targetStation.tags || {}) : [selectedTag];
+      if (tagsToFetch.length === 0) {
+        Toast.fire({ icon: 'warning', title: 'Trạm chưa có dữ liệu lịch sử' });
+        return; 
+      }
 
       const startParam = startTime ? startTime.replace("T", " ") + ":00" : "";
       const endParam = endTime ? endTime.replace("T", " ") + ":00" : "";
@@ -369,10 +477,8 @@
         const results = await Promise.all(fetchPromises);
         const datasets = [];
         let globalLabels = [];
-        const colors = ['rgb(79, 70, 229)', 'rgb(220, 38, 38)', 'rgb(5, 150, 105)', 'rgb(217, 119, 6)', 'rgb(124, 58, 237)'];
 
         results.forEach((res, index) => {
-          // 🟢 TỐI ƯU: Lấy trực tiếp tagKey từ kết quả API trả về, nếu API thiếu thì bốc ngược từ mảng định nghĩa gốc tagsToFetch
           const currentTagKey = res.tag_key || tagsToFetch[index];
           
           if (res.success && Array.isArray(res.data) && res.data.length > 0) {
@@ -383,12 +489,12 @@
             const color = colors[index % colors.length];
             
             datasets.push({
-              label: String(currentTagKey).toUpperCase(), // 🟢 Ép kiểu chuỗi viết hoa rõ ràng làm nhãn đồ thị (Legend + Tooltip)
+              label: String(currentTagKey).toUpperCase(), 
               data: res.data.map(item => item.value),
               borderColor: color,
-              backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'), // Tăng độ đậm nét đổ vùng
+              backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'), 
               borderWidth: 2,
-              pointRadius: 2, // Tăng lên 2 để di chuột vào bốc điểm Tooltip chuẩn hơn
+              pointRadius: 2, 
               pointHoverRadius: 5,
               tension: 0.15,
               fill: selectedTag !== "ALL"
@@ -397,7 +503,7 @@
         });
 
         if (datasets.length === 0) {
-          alert("Không tìm thấy dữ liệu lịch sử trong khoảng thời gian này!");
+          Toast.fire({ icon: 'info', title: 'Không tìm thấy dữ liệu trong mốc giờ này' });
           if (chartInstance) chartInstance.destroy();
           return;
         }
@@ -412,11 +518,11 @@
             maintainAspectRatio: false,
             interaction: {
               mode: 'index',
-              intersect: false // 🟢 Cho phép di chuột bất kỳ đâu trên trục dọc để bốc Tooltip hiển thị tất cả các Tag
+              intersect: false 
             },
             plugins: {
               legend: {
-                display: true, // 🟢 BẮT BUỘC: Bật hiển thị nhãn bộ lọc màu của các đường Tag trên cùng đồ thị
+                display: true, 
                 position: 'top',
                 labels: {
                   font: { size: 12, weight: 'bold' },
@@ -424,8 +530,8 @@
                 }
               },
               tooltip: {
-                enabled: true, // 🟢 BẮT BUỘC: Kích hoạt bong bóng Tooltip hiển thị thông số chi tiết khi hover
-                backgroundColor: 'rgba(15, 23, 42, 0.9)', // Màu slate đậm sang trọng
+                enabled: true, 
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
                 titleFont: { size: 13, weight: 'bold' },
                 bodyFont: { size: 12 },
                 padding: 10,
@@ -446,7 +552,7 @@
         });
 
       } catch (error) {
-        alert("Lỗi tải sơ đồ: " + error.message);
+        Toast.fire({ icon: 'error', title: 'Lỗi đồng bộ sơ đồ' });
       }
     }
   </script>
