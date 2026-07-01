@@ -14,11 +14,13 @@
     "nodemon": "^3.1.14"
   },
   "dependencies": {
+    "aedes": "^1.1.1",
     "axios": "^1.18.1",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "mqtt": "^5.15.1",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "websocket-stream": "^5.5.2"
   }
 }
