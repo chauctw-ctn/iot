@@ -1,74 +1,78 @@
 ﻿// app.js
 "use strict";
 
-// Tải cấu hình biến môi trường từ file .env
+// Tải biến môi trường .env lên đầu hệ thống
 require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const app = express();
 
-// Import các tuyến định tuyến (Routes)
+// 1. Nhúng các Tuyến đường API phục vụ giao diện (UI)
 const stationRoutes = require('./routes/station.route');
 const overviewRoutes = require('./routes/overview.route');
 
-// Import các module dịch vụ Fetch/Lắng nghe dữ liệu
-const { connectMQTT } = require('./services/fetchmqtt');
+// 2. Nhúng 2 phân hệ cổng Gateway nhận dữ liệu đẩy về (Mới thêm)
+const { handleHttpPush } = require('./gateways/http_gateway');
+const { startMqttGatewayListener } = require('./gateways/mqtt_gateway');
+
+// 3. Nhúng 4 phân hệ cào dữ liệu tự động chạy ngầm (Luồng Fetch cũ của bạn)
 const { fetchMonreData } = require('./services/fetchmonre');
 const { fetchScadaData } = require('./services/fetchscada');
 const { fetchTVAData } = require('./services/fetchtva');
+const { connectMQTT } = require('./services/fetchmqtt'); // MQTT client cũ
 
-const app = express();
-
-// Middleware cấu hình phân tích dữ liệu JSON và phục vụ file tĩnh
+// Cấu hình Middleware phân tích cú pháp dữ liệu JSON đầu vào
 app.use(express.json());
+
+// Cấu hình thư mục chứa mã giao diện Frontend tĩnh công khai
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Bỏ qua yêu cầu favicon tránh spam log hệ thống
+// Chặn log rác favicon của trình duyệt
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Cấu hình các Endpoint API cho giao diện điều khiển
+
+// ====================================================================
+// ĐĂNG KÝ CÁC ĐƯỜNG DẪN API (ROUTES)
+// ====================================================================
+
+// 🟢 CỔNG MỚI: Đăng ký Endpoint nhận dữ liệu HTTP POST từ bên ngoài đẩy về
+app.post('/api/gateway/push', handleHttpPush);
+
+// CỔNG CŨ: Các endpoint phục vụ biểu đồ, danh sách và cài đặt trên UI
 app.use('/api/stations', stationRoutes);
 app.use('/api/overview', overviewRoutes);
 
+
+// ====================================================================
+// KHỞI ĐỘNG SERVER LẮNG NGHE VÀ KHỞI CHẠY SONG HÀNH CÁC CONFIG
+// ====================================================================
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`====================================================================`);
-  console.log(`🚀 Hệ thống quản lý dữ liệu đang chạy tại: http://localhost:${PORT}`);
+  console.log(`🚀 HYBRID DATA SERVER VẬN HÀNH THÀNH CÔNG TẠI: http://localhost:${PORT}`);
+  console.log(`Múi Giờ Hệ Thống: ${process.env.TZ || 'Asia/Ho_Chi_Minh'}`);
+  console.log(`--------------------------------------------------------------------`);
+  console.log(`[CORE] Các luồng FETCH cào quét dữ liệu cũ vẫn đang hoạt động ngầm.`);
+  console.log(`[GATEWAY] 2 Cổng đẩy dữ liệu mới (HTTP/MQTT) đang online độc lập!`);
   console.log(`====================================================================\n`);
 
-  // 1️⃣ Kích hoạt luồng lắng nghe sự kiện Broker MQTT (Luồng chạy ngầm liên tục)
+  // 📡 A. KÍCH HOẠT KÊNH GATEWAY NHẬN DỮ LIỆU IoT ĐẨY VỀ MỚI
   try {
-    console.log(`📡 [SYSTEM] Đang khởi tạo luồng kết nối MQTT...`);
-    connectMQTT();
+    startMqttGatewayListener();
   } catch (err) {
-    console.error("❌ [SYSTEM][ERROR] Lỗi kích hoạt kết nối MQTT:", err.message);
+    console.error("❌ [GATEWAY] Không thể khởi động MQTT Gateway mới:", err.message);
   }
 
-  // 2️⃣ Kích hoạt chu kỳ quét tự động lập tức cho module API MONRE (Cục)
+  // 🔄 B. KÍCH HOẠT LẠI TOÀN BỘ CÁC MODULE FETCH DỮ LIỆU CŨ (HOÀN TOÀN KHÔNG BỊ ẢNH HƯỞNG)
   try {
-    console.log(`☁️  [SYSTEM] Đang kích hoạt luồng tự động quét API MONRE...`);
-    // Chạy kích hoạt lần đầu ngay khi start app không cần đợi hết chu kỳ setInterval
-    await fetchMonreData().catch(err => console.error("❌ Lỗi chu kỳ đầu MONRE:", err.message));
+    connectMQTT(); // MQTT Client cào dữ liệu cũ
   } catch (err) {
-    console.error("❌ [SYSTEM][ERROR] Lỗi khởi chạy quét MONRE:", err.message);
+    console.error("❌ [FETCH] Không thể mở luồng nhận tin MQTT cũ:", err.message);
   }
 
-  // 3️⃣ Kích hoạt chu kỳ quét tự động lập tức cho module Web SCADA (Nhà máy)
-  try {
-    console.log(`⚙️  [SYSTEM] Đang kích hoạt luồng cào dữ liệu Web SCADA Nhà máy...`);
-    await fetchScadaData().catch(err => console.error("❌ Lỗi chu kỳ đầu SCADA:", err.message));
-  } catch (err) {
-    console.error("❌ [SYSTEM][ERROR] Lỗi khởi chạy quét SCADA:", err.message);
-  }
-
-  // 4️⃣ Kích hoạt chu kỳ quét tự động lập tức cho module Web TVA (Sở)
-  try {
-    console.log(`🌊  [SYSTEM] Đang kích hoạt luồng cào dữ liệu Web TVA Tỉnh...`);
-    await fetchTVAData().catch(err => console.error("❌ Lỗi chu kỳ đầu TVA:", err.message));
-  } catch (err) {
-    console.error("❌ [SYSTEM][ERROR] Lỗi khởi chạy quét TVA:", err.message);
-  }
-
-  console.log(`\n✅ [SYSTEM] Toàn bộ 4 core-module dịch vụ đã được kích hoạt đồng bộ thành công!`);
+  fetchMonreData().catch(err => console.error("❌ [FETCH] Lỗi kích hoạt cào Cục MONRE:", err.message));
+  fetchScadaData().catch(err => console.error("❌ [FETCH] Lỗi kích hoạt cào Scada nhà máy:", err.message));
+  fetchTVAData().catch(err => console.error("❌ [FETCH] Lỗi kích hoạt cào Web Sở TVA:", err.message));
 });

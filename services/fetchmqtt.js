@@ -8,12 +8,13 @@ const DEFAULT_CONFIG = {
   port: process.env.MQTT_PORT,
   topic: process.env.MQTT_TOPIC,
   source: process.env.MQTT_SOURCE || "mqtt",
-  tzOffsetMinutes: 0, // 🟢 FIX: Đã bổ sung thuộc tính này vào cấu hình hệ thống
-  FETCH_INTERVAL_SECONDS: Number(process.env.MQTT_FETCH_INTERVAL_SECONDS) || 60
+  tzOffsetMinutes: 0,
+  SAVE_DB_INTERVAL_SECONDS: Number(process.env.MQTT_SAVE_DB_INTERVAL_SECONDS) || 300
 };
 
 const TAG_PARAMETER_MAP = { MUCNUOC: "level", LUULUONG: "flow", TONGLUULUONG: "totalIndex" };
 let messageQueue = [];
+let mqttHistoryQueue = []; // RAM Queue để gom lưu lịch sử readings tách biệt
 
 function buildStationId(source, rawId) { return `${source}_${String(rawId).toLowerCase()}`; }
 function normalizeMetricValue(value) {
@@ -28,12 +29,12 @@ function formatTimestampWithOffsetRounded(ts, offsetMinutes) {
   if (Number.isNaN(parsed.getTime())) return null;
   const adjusted = new Date(parsed.getTime() + (Number(offsetMinutes) || 0) * 60 * 1000);
   const pad = (v) => String(v).padStart(2, "0");
-  return `${adjusted.getFullYear()}-${pad(adjusted.getMonth() + 1)}-${pad(adjusted.getDate())} ${pad(adjusted.getHours())}:${pad(adjusted.getMinutes())}:00`;
+  return `${adjusted.getFullYear()}-${pad(adjusted.getMonth() + 1)}-${pad(adjusted.getDate())} ${pad(adjusted.getHours())}:${pad(adjusted.getMinutes())}:00+07`;
 }
 
 function getCurrentSystemTimeRounded() {
   const now = new Date(); const pad = (v) => String(v).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:00+07`;
 }
 
 function parsePayloadTextSecure(text) {
@@ -49,29 +50,27 @@ function parsePayloadTextSecure(text) {
   } catch (_) { return null; }
 }
 
+// 🌐 TIẾN TRÌNH 1: NHẬN TIN MQTT ĐẾN ĐÂU UPSERT BẢNG LATEST NGAY LẬP TỨC (REALTIME)
 setInterval(async () => {
   if (messageQueue.length === 0) return;
-  const startLogTime = Date.now();
   const processingBatch = [...messageQueue]; messageQueue = []; 
 
-  console.log(`\n📡 [MQTT][BATCH] Khởi động chu kỳ xử lý. Đang giải mã ${processingBatch.length} gói tin trong Queue...`);
-  let client;
+  let dbClient;
   try {
-    client = await db.connect();
+    dbClient = await db.connect();
     const currentFetchTs = getCurrentSystemTimeRounded(); 
-    await client.query("BEGIN");
-
-    const mappingRes = await client.query(`SELECT source_logger_id, source_tag_key, target_station_id FROM logger_tag_mappings`);
+    const mappingRes = await dbClient.query(`SELECT source_logger_id, source_tag_key, target_station_id FROM logger_tag_mappings`);
     const activeMappings = mappingRes.rows;
 
-    const upsertLatestQuery = `INSERT INTO logger_latest (logger_id, tag_key, data_ts, value, current_ts) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (logger_id, tag_key) DO UPDATE SET data_ts = EXCLUDED.data_ts, value = EXCLUDED.value, current_ts = EXCLUDED.current_ts;`;
-    const insertReadingsQuery = `INSERT INTO logger_readings (logger_id, tag_key, data_ts, data_save, value) VALUES ($1, $2, $3, $4, $5);`;
+    const upsertLatestQuery = `
+      INSERT INTO logger_latest (logger_id, tag_key, data_ts, value, current_ts) 
+      VALUES ($1, $2, $3::timestamptz, $4, $5::timestamptz) 
+      ON CONFLICT (logger_id, tag_key) 
+      DO UPDATE SET data_ts = EXCLUDED.data_ts, value = EXCLUDED.value, current_ts = EXCLUDED.current_ts;
+    `;
 
-    let originalCount = 0; let matrixCount = 0;
     for (const payload of processingBatch) {
       if (!payload || !Array.isArray(payload.d)) continue;
-      
-      // 🟢 FIX: Truyền biến từ thuộc tính đã khai báo chuẩn ở đầu file cấu hình
       const formattedDataTs = formatTimestampWithOffsetRounded(payload.ts, DEFAULT_CONFIG.tzOffsetMinutes) || payload.ts;
 
       for (const item of payload.d) {
@@ -92,39 +91,70 @@ setInterval(async () => {
         }
 
         const parameter = TAG_PARAMETER_MAP[parameterTypeRaw.toUpperCase()]; if (!parameter) continue;
-
         const rawId = deviceCode.replace(/[^a-zA-Z0-9]+/g, "").toLowerCase();
         const stationId = buildStationId(DEFAULT_CONFIG.source, rawId);
 
-        // Lưu dữ liệu gốc MQTT
-        await client.query(upsertLatestQuery, [stationId, parameter, formattedDataTs, parsedValue, currentFetchTs]);
-        await client.query(insertReadingsQuery, [stationId, parameter, formattedDataTs, currentFetchTs, parsedValue]);
-        originalCount++;
+        // A. Cập nhật latest trạm gốc
+        await dbClient.query(upsertLatestQuery, [stationId, parameter, formattedDataTs, parsedValue, currentFetchTs]);
+        await dbClient.query(`INSERT INTO public.logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [stationId, `Trạm ${stationId}`, 'Tự động từ MQTT']);
 
-        await client.query(`INSERT INTO public.logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [stationId, `Trạm ${stationId}`, 'Tự động từ MQTT']);
+        // Đẩy vào RAM để chờ chu kỳ ghi lịch sử
+        mqttHistoryQueue.push({ logger_id: stationId, tag_key: parameter, data_ts: formattedDataTs });
 
-        // Ánh xạ chuyển tiếp ma trận
+        // B. Cập nhật ma trận chuyển tiếp
         const relatedMaps = activeMappings.filter(m => m.source_logger_id === stationId && m.source_tag_key === parameter);
         for (const mapItem of relatedMaps) {
-          await client.query(upsertLatestQuery, [mapItem.target_station_id, parameter, formattedDataTs, parsedValue, currentFetchTs]);
-          await client.query(insertReadingsQuery, [mapItem.target_station_id, parameter, formattedDataTs, currentFetchTs, parsedValue]);
-          matrixCount++;
-
-          await client.query(`INSERT INTO public.logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [mapItem.target_station_id, `Trạm ${mapItem.target_station_id}`, 'Tự động qua ma trận MQTT']);
+          await dbClient.query(upsertLatestQuery, [mapItem.target_station_id, parameter, formattedDataTs, parsedValue, currentFetchTs]);
+          await dbClient.query(`INSERT INTO public.logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [mapItem.target_station_id, `Trạm ${mapItem.target_station_id}`, 'Tự động qua ma trận MQTT']);
+          
+          mqttHistoryQueue.push({ logger_id: mapItem.target_station_id, tag_key: parameter, data_ts: formattedDataTs });
         }
       }
     }
-
-    await client.query("COMMIT");
-    const duration = Date.now() - startLogTime;
-    console.log(`💾 [MQTT][DB_SUCCESS] Thực thi Transaction hoàn tất! [Gốc: +${originalCount}] | [Ma trận: +${matrixCount}]. Thời gian lưu: ${duration}ms`);
   } catch (error) {
-    if (client) await client.query("ROLLBACK");
-    console.error("❌ [MQTT][DB_CRASH] Thất bại luồng ghi dữ liệu thiết bị:", error.message); 
+    console.error("❌ [MQTT][PROCESS_ERROR] Thất bại xử lý gói tin:", error.message); 
   } finally { 
-    if (client) client.release(); 
+    if (dbClient) dbClient.release(); 
   }
-}, DEFAULT_CONFIG.FETCH_INTERVAL_SECONDS * 1000);
+}, 2000); // Quét mảng xử lý gói tin nhanh mỗi 2 giây
+
+// 💾 CHU KỲ 2: LƯU LỊCH SỬ LOGGER_READINGS ĐỊNH KỲ THEO PHÚT TỪ ENV
+async function flushMqttHistory() {
+  if (mqttHistoryQueue.length === 0) return;
+  const startLogTime = Date.now();
+  const cachedItems = [...mqttHistoryQueue]; mqttHistoryQueue = [];
+  const currentSaveTs = getCurrentSystemTimeRounded();
+
+  console.log(`\n💾 [MQTT][READINGS] Đến chu kỳ lưu DB (${DEFAULT_CONFIG.SAVE_DB_INTERVAL_SECONDS}s) -> Xả ${cachedItems.length} bản ghi lịch sử MQTT...`);
+  let dbClient;
+  try {
+    dbClient = await db.connect();
+    await dbClient.query("BEGIN");
+    const insertReadingsQuery = `
+    INSERT INTO logger_readings (logger_id, tag_key, data_ts, data_save, value) 
+    VALUES (
+      $1::text, 
+      $2::text, 
+      $3::timestamptz, 
+      $4::timestamptz, 
+      (SELECT value FROM logger_latest WHERE logger_id = $1::text AND tag_key = $2::text LIMIT 1)
+    )
+    ON CONFLICT DO NOTHING;
+  `;
+    for (const item of cachedItems) {
+      await dbClient.query(insertReadingsQuery, [item.logger_id, item.tag_key, item.data_ts, currentSaveTs]);
+    }
+    await dbClient.query("COMMIT");
+    console.log(`✅ [MQTT][READINGS_SUCCESS] Đã lưu xong +${cachedItems.length} dòng lịch sử MQTT. Thống kê: ${Date.now() - startLogTime}ms`);
+  } catch (error) {
+    if (dbClient) await dbClient.query("ROLLBACK");
+    console.error("❌ [MQTT][READINGS_CRASH] Thất bại khi xả hàng đợi lịch sử:", error.message);
+  } finally {
+    if (dbClient) dbClient.release();
+  }
+}
+
+setInterval(async () => { await flushMqttHistory(); }, DEFAULT_CONFIG.SAVE_DB_INTERVAL_SECONDS * 1000);
 
 function connectMQTT() {
   const client = mqtt.connect(`mqtt://${DEFAULT_CONFIG.host}:${DEFAULT_CONFIG.port}`, { clean: true, connectTimeout: 10000, reconnectPeriod: 3000 });
@@ -136,7 +166,6 @@ function connectMQTT() {
     const rawStr = payload.toString("utf8");
     const parsed = parsePayloadTextSecure(rawStr);
     if (parsed) { messageQueue.push(parsed); }
-    else { console.warn(`⚠️  [MQTT][WARN] Nhận gói tin sai định dạng JSON thô từ topic "${topic}". Bỏ qua.`); }
   });
   return client;
 }

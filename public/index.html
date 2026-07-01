@@ -372,15 +372,26 @@
         const colors = ['rgb(79, 70, 229)', 'rgb(220, 38, 38)', 'rgb(5, 150, 105)', 'rgb(217, 119, 6)', 'rgb(124, 58, 237)'];
 
         results.forEach((res, index) => {
+          // 🟢 TỐI ƯU: Lấy trực tiếp tagKey từ kết quả API trả về, nếu API thiếu thì bốc ngược từ mảng định nghĩa gốc tagsToFetch
+          const currentTagKey = res.tag_key || tagsToFetch[index];
+          
           if (res.success && Array.isArray(res.data) && res.data.length > 0) {
             if (globalLabels.length === 0) {
               globalLabels = res.data.map(item => new Date(item.timestamp).toLocaleString('vi-VN'));
             }
+            const colors = ['rgb(79, 70, 229)', 'rgb(220, 38, 38)', 'rgb(5, 150, 105)', 'rgb(217, 119, 6)', 'rgb(124, 58, 237)'];
             const color = colors[index % colors.length];
+            
             datasets.push({
-              label: `${res.tag_key}`, data: res.data.map(item => item.value),
-              borderColor: color, backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.05)'),
-              borderWidth: 2, pointRadius: 1, tension: 0.15, fill: selectedTag !== "ALL"
+              label: String(currentTagKey).toUpperCase(), // 🟢 Ép kiểu chuỗi viết hoa rõ ràng làm nhãn đồ thị (Legend + Tooltip)
+              data: res.data.map(item => item.value),
+              borderColor: color,
+              backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'), // Tăng độ đậm nét đổ vùng
+              borderWidth: 2,
+              pointRadius: 2, // Tăng lên 2 để di chuột vào bốc điểm Tooltip chuẩn hơn
+              pointHoverRadius: 5,
+              tension: 0.15,
+              fill: selectedTag !== "ALL"
             });
           }
         });
@@ -394,16 +405,46 @@
         if (chartInstance) chartInstance.destroy();
         const ctx = document.getElementById('myLineChart').getContext('2d');
         chartInstance = new Chart(ctx, {
-          type: 'line', data: { labels: globalLabels, datasets },
+          type: 'line',
+          data: { labels: globalLabels, datasets },
           options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false // 🟢 Cho phép di chuột bất kỳ đâu trên trục dọc để bốc Tooltip hiển thị tất cả các Tag
+            },
+            plugins: {
+              legend: {
+                display: true, // 🟢 BẮT BUỘC: Bật hiển thị nhãn bộ lọc màu của các đường Tag trên cùng đồ thị
+                position: 'top',
+                labels: {
+                  font: { size: 12, weight: 'bold' },
+                  boxWidth: 15
+                }
+              },
+              tooltip: {
+                enabled: true, // 🟢 BẮT BUỘC: Kích hoạt bong bóng Tooltip hiển thị thông số chi tiết khi hover
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', // Màu slate đậm sang trọng
+                titleFont: { size: 13, weight: 'bold' },
+                bodyFont: { size: 12 },
+                padding: 10,
+                cornerRadius: 6
+              }
+            },
             scales: {
-              x: { grid: { display: false }, ticks: { maxTicksLimit: 12, font: { size: 10 } } },
-              y: { grid: { color: 'rgba(226, 232, 240, 0.6)' }, ticks: { font: { size: 10 } } }
+              x: {
+                grid: { display: false },
+                ticks: { maxTicksLimit: 12, font: { size: 10 } }
+              },
+              y: {
+                grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                ticks: { font: { size: 10 } }
+              }
             }
           }
         });
+
       } catch (error) {
         alert("Lỗi tải sơ đồ: " + error.message);
       }

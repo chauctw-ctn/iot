@@ -9,7 +9,8 @@ const CONFIG = {
     PORTAL_URL: process.env.MONRE_PORTAL_URL,
     DATA_URL: process.env.MONRE_DATA_URL,
     SOURCE: "monre", 
-    FETCH_INTERVAL_SECONDS: Number(process.env.MONRE_FETCH_INTERVAL_SECONDS) || 60
+    FETCH_INTERVAL_SECONDS: Number(process.env.MONRE_FETCH_INTERVAL_SECONDS) || 60,
+    SAVE_DB_INTERVAL_SECONDS: Number(process.env.MONRE_SAVE_DB_INTERVAL_SECONDS) || 300
 };
 
 const PROJECT_FILTER = "(congtrinh='CAPNUOCCAMAU1' OR congtrinh='CONGTYCOPHANCAPNUOCC' OR congtrinh='NHAMAYCAPNUOCSO1' OR congtrinh='CAPNUOCCAMAUSO2')";
@@ -25,6 +26,7 @@ const PARAMETER_MAP = {
 };
 
 let cachedToken = null; let tokenExpiry = null;
+let monreHistoryQueue = []; // Hàng đợi RAM gom dữ liệu lịch sử
 
 function getCleanPermitNumber(projectName) {
     if (!projectName) return "UNKNOWN";
@@ -43,12 +45,12 @@ function formatTimestampRounded(ts) {
     const date = new Date(Number(ts));
     if (Number.isNaN(date.getTime())) return null;
     const pad = (v) => String(v).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:00+07`;
 }
 
 function getCurrentSystemTimeRounded() {
     const now = new Date(); const pad = (v) => String(v).padStart(2, "0");
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:00+07`;
 }
 
 function normalizeMetricValue(value) {
@@ -63,26 +65,24 @@ function normalizeMetricValue(value) {
 async function getToken() {
     if (cachedToken && tokenExpiry && Date.now() < (tokenExpiry - 5 * 60 * 1000)) return cachedToken;
     try {
-        console.log(`🔑 [MONRE][TOKEN] Đang gửi yêu cầu cấp Token mới tới Portal...`);
         const params = new URLSearchParams({ username: CONFIG.USERNAME, password: CONFIG.PASSWORD, referer: 'https://iot.monre.gov.vn', f: 'json', expiration: 60 });
         const response = await axios.post(CONFIG.PORTAL_URL, params.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 });
         if (response.data && response.data.token) {
             cachedToken = response.data.token;
             tokenExpiry = response.data.expires ? response.data.expires : (Date.now() + 60 * 60 * 1000);
-            console.log(`🟢 [MONRE][TOKEN] Cấp Token bảo mật thành công! Hết hạn lúc: ${new Date(tokenExpiry).toLocaleTimeString()}`);
             return cachedToken;
         }
         throw new Error(response.data?.error?.message || 'Invalid token response');
     } catch (error) {
-        console.error("❌ [MONRE][TOKEN] Thất bại khi thiết lập Token bảo mật:", error.message);
+        console.error("❌ [MONRE][TOKEN] Thất bại khi lấy Token:", error.message);
         throw error;
     }
 }
 
+// 🌐 CHU KỲ 1: FETCH VÀ UPSERT BẢNG LATEST TỨC THỜI
 async function fetchMonreData() {
-    const startLogTime = Date.now();
     console.log(`\n☁️  [MONRE][FETCH] Khởi chạy chu kỳ quét API (${CONFIG.FETCH_INTERVAL_SECONDS}s)...`);
-    let client;
+    let dbClient;
     try {
         const token = await getToken();
         const currentFetchTs = getCurrentSystemTimeRounded(); 
@@ -92,7 +92,6 @@ async function fetchMonreData() {
         if (response.data && response.data.error) throw new Error(response.data.error.message);
 
         const features = response.data.features || [];
-        console.log(`📥 [MONRE][FETCH] Đã nhận được ${features.length} dòng dữ liệu thô từ Portal.`);
         if (features.length === 0) return;
 
         const rawLatestMap = {};
@@ -130,47 +129,76 @@ async function fetchMonreData() {
             }
         }
 
-        console.log(`⚙️  [MONRE][PROCESS] Phân tách thành công ${finalizedDataBatch.length} chỉ số đo hợp lệ.`);
-        client = await db.connect();
-        await client.query("BEGIN");
-
-        const mappingRes = await client.query(`SELECT source_logger_id, source_tag_key, target_station_id FROM logger_tag_mappings`);
+        dbClient = await db.connect();
+        const mappingRes = await dbClient.query(`SELECT source_logger_id, source_tag_key, target_station_id FROM logger_tag_mappings`);
         const mappings = mappingRes.rows;
 
-        const upsertLatestQuery = `INSERT INTO logger_latest (logger_id, tag_key, data_ts, value, current_ts) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (logger_id, tag_key) DO UPDATE SET data_ts = EXCLUDED.data_ts, value = EXCLUDED.value, current_ts = EXCLUDED.current_ts;`;
-        const insertReadingsQuery = `INSERT INTO logger_readings (logger_id, tag_key, data_ts, data_save, value) VALUES ($1, $2, $3, $4, $5);`;
+        const upsertLatestQuery = `
+            INSERT INTO logger_latest (logger_id, tag_key, data_ts, value, current_ts) 
+            VALUES ($1, $2, $3::timestamptz, $4, $5::timestamptz) 
+            ON CONFLICT (logger_id, tag_key) 
+            DO UPDATE SET data_ts = EXCLUDED.data_ts, value = EXCLUDED.value, current_ts = EXCLUDED.current_ts;
+        `;
 
-        let originalCount = 0; let matrixCount = 0;
         for (const record of finalizedDataBatch) {
-            // Ghi dữ liệu trạm gốc
-            await client.query(upsertLatestQuery, [record.stationId, record.tagKey, record.dataTs, record.value, currentFetchTs]);
-            await client.query(insertReadingsQuery, [record.stationId, record.tagKey, record.dataTs, currentFetchTs, record.value]);
-            originalCount++;
+            await dbClient.query(upsertLatestQuery, [record.stationId, record.tagKey, record.dataTs, record.value, currentFetchTs]);
+            await dbClient.query(`INSERT INTO logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [record.stationId, `Trạm ${record.stationId}`, 'Khởi tạo tự động từ luồng API MONRE']);
 
-            await client.query(`INSERT INTO logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [record.stationId, `Trạm ${record.stationId}`, 'Khởi tạo tự động từ luồng API MONRE']);
+            monreHistoryQueue.push({ logger_id: record.stationId, tag_key: record.tagKey, data_ts: record.dataTs });
 
-            // Xử lý ma trận chuyển tiếp ánh xạ
             const targetMaps = mappings.filter(m => m.source_logger_id === record.stationId && m.source_tag_key === record.tagKey);
             for (const mapItem of targetMaps) {
-                await client.query(upsertLatestQuery, [mapItem.target_station_id, record.tagKey, record.dataTs, record.value, currentFetchTs]);
-                await client.query(insertReadingsQuery, [mapItem.target_station_id, record.tagKey, record.dataTs, currentFetchTs, record.value]);
-                matrixCount++;
-
-                await client.query(`INSERT INTO logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [mapItem.target_station_id, `Trạm ${mapItem.target_station_id}`, 'Khởi tạo tự động qua luồng ma trận']);
+                await dbClient.query(upsertLatestQuery, [mapItem.target_station_id, record.tagKey, record.dataTs, record.value, currentFetchTs]);
+                await dbClient.query(`INSERT INTO logger_stations (station_id, display_name, description) VALUES ($1, $2, $3) ON CONFLICT (station_id) DO NOTHING;`, [mapItem.target_station_id, `Trạm ${mapItem.target_station_id}`, 'Khởi tạo tự động qua luồng ma trận']);
+                
+                monreHistoryQueue.push({ logger_id: mapItem.target_station_id, tag_key: record.tagKey, data_ts: record.dataTs });
             }
         }
-
-        await client.query("COMMIT");
-        const duration = Date.now() - startLogTime;
-        console.log(`💾 [MONRE][DB_SUCCESS] Đã ghi thành công! [Trạm gốc: +${originalCount} bản ghi] | [Ma trận ánh xạ: +${matrixCount} bản ghi]. Thời gian xử lý: ${duration}ms`);
-
+        console.log(`📥 [MONRE][FETCH_SUCCESS] Cập nhật xong bảng tức thời. Gom ${finalizedDataBatch.length} dòng vào RAM Queue.`);
     } catch (error) {
-        if (client) await client.query("ROLLBACK");
-        console.error('❌ [MONRE][DB_CRASH] Thất bại chu kỳ ghi đồng bộ:', error.message);
+        console.error('❌ [MONRE][FETCH_ERROR] Thất bại chu kỳ cào:', error.message);
     } finally {
-        if (client) client.release();
+        if (dbClient) dbClient.release();
+    }
+}
+
+// 💾 CHU KỲ 2: XẢ HÀNG ĐỢI GHI LỊCH SỬ VÀO LOGGER_READINGS
+async function flushMonreHistory() {
+    if (monreHistoryQueue.length === 0) return;
+    const startLogTime = Date.now();
+    const cachedItems = [...monreHistoryQueue]; monreHistoryQueue = [];
+    const currentSaveTs = getCurrentSystemTimeRounded();
+
+    console.log(`\n💾 [MONRE][READINGS] Đến chu kỳ lưu DB (${CONFIG.SAVE_DB_INTERVAL_SECONDS}s) -> Đang xả ${cachedItems.length} bản ghi lịch sử...`);
+    let dbClient;
+    try {
+        dbClient = await db.connect();
+        await dbClient.query("BEGIN");
+        const insertReadingsQuery = `
+        INSERT INTO logger_readings (logger_id, tag_key, data_ts, data_save, value) 
+        VALUES (
+            $1::text, 
+            $2::text, 
+            $3::timestamptz, 
+            $4::timestamptz, 
+            (SELECT value FROM logger_latest WHERE logger_id = $1::text AND tag_key = $2::text LIMIT 1)
+        )
+        ON CONFLICT DO NOTHING;
+        `;
+        for (const item of cachedItems) {
+            await dbClient.query(insertReadingsQuery, [item.logger_id, item.tag_key, item.data_ts, currentSaveTs]);
+        }
+        await dbClient.query("COMMIT");
+        console.log(`✅ [MONRE][READINGS_SUCCESS] Đã lưu hoàn tất +${cachedItems.length} dòng lịch sử MONRE. Thời gian: ${Date.now() - startLogTime}ms`);
+    } catch (error) {
+        if (dbClient) await dbClient.query("ROLLBACK");
+        console.error("❌ [MONRE][READINGS_CRASH] Thất bại khi xả hàng đợi lịch sử:", error.message);
+    } finally {
+        if (dbClient) dbClient.release();
     }
 }
 
 setInterval(async () => { await fetchMonreData(); }, CONFIG.FETCH_INTERVAL_SECONDS * 1000);
+setInterval(async () => { await flushMonreHistory(); }, CONFIG.SAVE_DB_INTERVAL_SECONDS * 1000);
+
 module.exports = { fetchMonreData };

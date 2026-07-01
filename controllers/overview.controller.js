@@ -40,7 +40,13 @@ exports.getHistoryLog = async (req, res) => {
 
     const query = `SELECT value, data_ts FROM logger_readings WHERE logger_id = $1 AND tag_key = $2 AND data_ts::timestamp >= $3::timestamp AND data_ts::timestamp <= $4::timestamp ORDER BY data_ts ASC`;
     const { rows } = await db.query(query, [station_id, tag_key, rawStart, rawEnd]);
-    return res.status(200).json({ success: true, data: rows.map(r => ({ value: parseFloat(r.value), timestamp: r.data_ts })) });
+    return res.status(200).json({
+      success: true,
+      station_id,
+      tag_key, // 🟢 Đảm bảo dòng này có mặt trong Object trả về của API lịch sử đồ thị
+      total_points: rows.length,
+      data: rows.map(r => ({ value: parseFloat(r.value), timestamp: r.data_ts }))
+    });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
