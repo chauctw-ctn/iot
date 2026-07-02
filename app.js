@@ -7,9 +7,13 @@ const path = require('path');
 const app = express();
 
 const stationRoutes = require('./routes/station.route');
-const overviewRoutes = require('./routes/overview.route');
+const overviewRoutes = require('./routes/overview.route'); // <-- Đã sửa thành công về thư mục routes gốc
+const alertRoutes = require('./routes/alert.route'); 
 const { handleHttpPush } = require('./gateways/http_gateway');
 const { startMqttGatewayListener } = require('./gateways/mqtt_gateway');
+
+// Tích hợp Alert Engine quản lý tự động quét lỗi mạng ngầm
+const { checkSystemOfflineAlert } = require('./services/alert_engine');
 
 // Các luồng fetch cũ của bạn (giữ nguyên)
 const { fetchMonreData } = require('./services/fetchmonre');
@@ -25,7 +29,8 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 // Đăng ký các Endpoint API Gateways và Routes UI
 app.post('/api/gateway/push', handleHttpPush);
 app.use('/api/stations', stationRoutes);
-app.use('/api/overview', overviewRoutes);
+app.use('/api/overview', overviewRoutes); // <-- Sử dụng trực tiếp biến đã sửa ở trên
+app.use('/api/alerts', alertRoutes); 
 
 // Bẫy lỗi toàn cục để tránh việc App bị sập bất thình lình khi chạy ngầm trên Render
 process.on('unhandledRejection', (reason, promise) => {
@@ -35,11 +40,11 @@ process.on('uncaughtException', (error) => {
   console.error('❌ [PROCESS] Phát hiện lỗi nghiêm trọng chưa được bắt:', error.message);
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; 
 app.listen(PORT, () => {
   console.log(`====================================================================`);
   console.log(`🚀 API SERVER CHẠY TẠI PORT: http://localhost:${PORT}`);
-  console.log(`Múi Giờ Cấu Hình Hệ Thống: ${process.env.TZ || 'Asia/Ho_Chi_Minh'}`);
+  console.log(`Múi Giờ Cấu Hình Hệ Thống: ${process.env.TZ || 'Asia/Ho_Chi_Minh'}`); 
   console.log(`====================================================================\n`);
 
   // 📡 1. Kích hoạt nhận dữ liệu qua cổng TCP 1885 độc lập (Mới)
@@ -56,7 +61,20 @@ app.listen(PORT, () => {
     console.error("❌ [FETCH] Lỗi kết nối luồng MQTT Fetch cũ:", err.message);
   }
   
-  fetchMonreData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi MONRE:", err.message));
-  fetchScadaData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi SCADA:", err.message));
-  fetchTVAData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi TVA:", err.message));
+  fetchMonreData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi MONRE:", err.message)); 
+  fetchScadaData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi SCADA:", err.message)); 
+  fetchTVAData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi TVA:", err.message)); 
+
+  // 🔔 3. KÍCH HOẠT WORKER TỰ ĐỘNG GỬI CẢNH BÁO TELEGRAM (QUAN TRỌNG)
+  console.log("📟 [WORKER] Tiến trình giám sát Cảnh báo ngầm Telegram đã khởi động thành công!");
+  
+  checkSystemOfflineAlert().catch(err => console.error("❌ [WORKER] Lỗi khởi động quét mồi Telegram:", err.message));
+
+  setInterval(async () => {
+    try {
+      await checkSystemOfflineAlert();
+    } catch (err) {
+      console.error("❌ [WORKER] Lỗi trong chu kỳ quét cảnh báo Telegram ngầm:", err.message);
+    }
+  }, 60000); 
 });

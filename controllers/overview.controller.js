@@ -57,10 +57,13 @@ exports.getLatestOverview = async (req, res) => {
  * API Endpoint: GET /api/overview/history-chart
  */
 exports.getHistoryLog = async (req, res) => {
-  const { station_id, tag_key, start_time, end_time } = req.query;
+  const { station_id, tag_key, start_time, end_time, interval_mins } = req.query;
+  
   if (!station_id || !tag_key) {
     return res.status(400).json({ success: false, error: 'Thiếu tham số bắt buộc (station_id, tag_key)' });
   }
+
+  const interval = parseInt(interval_mins, 10) || 5;
 
   try {
     let rawStart = start_time;
@@ -75,24 +78,32 @@ exports.getHistoryLog = async (req, res) => {
       if (!rawStart) rawStart = new Date(localNow.getTime() - 86400000).toISOString().replace("T", " ").slice(0, 19);
     }
 
+    // 🟢 ĐÃ FIX: Sửa đổi "tag_value::numeric" thành "value::numeric" chuẩn theo bảng logger_readings
     const query = `
-      SELECT value, data_ts 
+      SELECT 
+        to_timestamp(floor(extract(epoch from data_ts) / ($1 * 60)) * ($1 * 60)) AS group_ts,
+        ROUND(AVG(value::numeric), 2) AS avg_value
       FROM logger_readings 
-      WHERE logger_id = $1 
-        AND tag_key = $2 
-        AND data_ts::timestamp >= $3::timestamp 
-        AND data_ts::timestamp <= $4::timestamp 
-      ORDER BY data_ts ASC
+      WHERE logger_id = $2 
+        AND tag_key = $3 
+        AND data_ts::timestamp >= $4::timestamp 
+        AND data_ts::timestamp <= $5::timestamp 
+      GROUP BY group_ts
+      ORDER BY group_ts ASC
     `;
     
-    const { rows } = await db.query(query, [station_id, tag_key, rawStart, rawEnd]);
+    const { rows } = await db.query(query, [interval, station_id, tag_key, rawStart, rawEnd]);
     
     return res.status(200).json({
       success: true,
       station_id,
       tag_key, 
+      interval_mins: interval,
       total_points: rows.length,
-      data: rows.map(r => ({ value: parseFloat(r.value), timestamp: r.data_ts }))
+      data: rows.map(r => ({ 
+        value: parseFloat(r.avg_value), 
+        timestamp: r.group_ts 
+      }))
     });
   } catch (error) {
     console.error("❌ [API][GET_HISTORY_LOG_ERROR]", error.message);

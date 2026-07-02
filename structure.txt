@@ -1,0 +1,27 @@
+﻿|-- config
+|   |-- db.js
+|-- controllers
+|   |-- overview.controller.js
+|   |-- station.controller.js
+|-- gateways
+|   |-- http_gateway.js
+|   |-- mqtt_gateway.js
+|-- public
+|   |-- index.html
+|-- routes
+|   |-- overview.route.js
+|   |-- station.route.js
+|-- services
+|   |-- .gitignore
+|   |-- fetchmonre.js
+|   |-- fetchmqtt.js
+|   |-- fetchscada.js
+|   |-- fetchtva.js
+|-- .env
+|-- app.js
+|-- get_attributes.js
+|-- init.js
+|-- package-lock.json
+|-- package.json
+|-- README.md
+|-- structure.txt

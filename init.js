@@ -23,6 +23,10 @@ async function initAndCleanDatabase() {
       ALTER TABLE public.logger_stations 
       ADD COLUMN IF NOT EXISTS offline_timeout_secs INT DEFAULT 300;
     `);
+    await db.query(`
+      ALTER TABLE public.logger_stations 
+      ADD COLUMN IF NOT EXISTS repeat_alert_interval_mins INT DEFAULT 30;
+    `);
 
     // 🟢 2. XÓA SẠCH DỮ LIỆU TUYỆT ĐỐI
     console.log('🧹 Đang thực thi TRUNCATE làm sạch trắng toàn bộ dữ liệu...');

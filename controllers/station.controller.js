@@ -8,7 +8,7 @@ const db = require('../config/db');
  * API Endpoint: POST /api/stations/mapping
  */
 const saveTagMappings = async (req, res) => {
-  // 🟢 CẬP NHẬT: Lấy thêm trường offline_timeout_secs được gửi từ UI về
+  // 🟢 CẬP NHẬT: Lấy thêm trường offline_timeout_secs và repeat_alert_interval_mins gửi từ UI về
   const { 
     source, 
     source_logger_id, 
@@ -18,7 +18,8 @@ const saveTagMappings = async (req, res) => {
     lat, 
     lng, 
     alert_thresholds,
-    offline_timeout_secs 
+    offline_timeout_secs,
+    repeat_alert_interval_mins // <-- Nhận thêm trường chu kỳ lặp lại
   } = req.body;
   
   if (!target_station_id) {
@@ -26,7 +27,12 @@ const saveTagMappings = async (req, res) => {
   }
 
   try {
-    const nameQuery = await db.query(`SELECT display_name, offline_timeout_secs FROM logger_stations WHERE station_id = $1`, [target_station_id]);
+    // Lấy thêm cột repeat_alert_interval_mins cũ trong DB để làm dữ liệu backup
+    const nameQuery = await db.query(
+      `SELECT display_name, offline_timeout_secs, repeat_alert_interval_mins 
+       FROM logger_stations WHERE station_id = $1`, 
+      [target_station_id]
+    );
     
     // Xử lý lấy tên cũ hoặc tên mặc định
     const oldName = nameQuery.rows.length > 0 ? nameQuery.rows[0].display_name : `Trạm ${target_station_id}`;
@@ -36,32 +42,41 @@ const saveTagMappings = async (req, res) => {
     const finalLat = (lat !== null && lat !== undefined && String(lat).trim() !== '') ? parseFloat(lat) : null;
     const finalLng = (lng !== null && lng !== undefined && String(lng).trim() !== '') ? parseFloat(lng) : null;
 
-    // 🟢 CẬP NHẬT: Ép kiểu số nguyên cho Timeout. Nếu trống hoặc không phải số, lấy cấu hình cũ trong DB hoặc mặc định 300 giây.
+    // Xử lý ép kiểu số nguyên cho Timeout. Nếu trống hoặc không phải số, lấy cấu hình cũ trong DB hoặc mặc định 300 giây.
     const oldTimeout = nameQuery.rows.length > 0 ? nameQuery.rows[0].offline_timeout_secs : 300;
     let finalTimeout = offline_timeout_secs !== null && offline_timeout_secs !== undefined && String(offline_timeout_secs).trim() !== '' 
       ? parseInt(offline_timeout_secs, 10) 
       : oldTimeout;
     if (isNaN(finalTimeout)) finalTimeout = 300;
 
-    // 🟢 CẬP NHẬT: Thêm trường offline_timeout_secs vào câu lệnh INSERT và mệnh đề DO UPDATE
+    // 🟢 THÊM MỚI: Xử lý ép kiểu cho chu kỳ lặp lại cảnh báo (Phút). Mặc định 30 phút nếu lỗi/trống.
+    const oldRepeatInterval = nameQuery.rows.length > 0 ? nameQuery.rows[0].repeat_alert_interval_mins : 30;
+    let finalRepeatInterval = repeat_alert_interval_mins !== null && repeat_alert_interval_mins !== undefined && String(repeat_alert_interval_mins).trim() !== ''
+      ? parseInt(repeat_alert_interval_mins, 10)
+      : oldRepeatInterval;
+    if (isNaN(finalRepeatInterval)) finalRepeatInterval = 30;
+
+    // 🟢 CẬP NHẬT: Thêm trường repeat_alert_interval_mins vào câu lệnh INSERT và mệnh đề DO UPDATE
     await db.query(`
-      INSERT INTO logger_stations (station_id, display_name, lat, lng, description, offline_timeout_secs)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO logger_stations (station_id, display_name, lat, lng, description, offline_timeout_secs, repeat_alert_interval_mins)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (station_id) DO UPDATE 
       SET display_name = EXCLUDED.display_name, 
           lat = EXCLUDED.lat, 
           lng = EXCLUDED.lng,
-          offline_timeout_secs = EXCLUDED.offline_timeout_secs
+          offline_timeout_secs = EXCLUDED.offline_timeout_secs,
+          repeat_alert_interval_mins = EXCLUDED.repeat_alert_interval_mins
     `, [
       target_station_id, 
       finalDisplayName, 
       isNaN(finalLat) ? null : finalLat, 
       isNaN(finalLng) ? null : finalLng, 
       'Cập nhật từ ma trận bảng',
-      finalTimeout
+      finalTimeout,
+      finalRepeatInterval // <-- Giá trị truyền cho tham số $7
     ]);
 
-    // Xử lý bảng ma trận logger_tag_mappings
+    // Xử lý bảng ma trận logger_tag_mappings (Giữ nguyên luồng gốc của bạn)
     if (source_logger_id && source_logger_id !== target_station_id) {
       await db.query(`DELETE FROM logger_tag_mappings WHERE source_logger_id = $1 AND target_station_id = $2`, [source_logger_id, target_station_id]);
       if (source_tags && Array.isArray(source_tags) && source_tags.length > 0) {
@@ -74,7 +89,7 @@ const saveTagMappings = async (req, res) => {
       await db.query(`DELETE FROM logger_tag_mappings WHERE target_station_id = $1`, [target_station_id]);
     }
 
-    // Xử lý bảng ngưỡng cảnh báo alert_thresholds
+    // Xử lý bảng ngưỡng cảnh báo alert_thresholds (Giữ nguyên luồng gốc của bạn)
     if (alert_thresholds && Array.isArray(alert_thresholds)) {
       for (const th of alert_thresholds) {
         if (!th.tag_key) continue;

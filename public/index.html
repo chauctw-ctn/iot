@@ -30,7 +30,8 @@
             <th class="p-3 w-32">Trạm Nhận Tag</th>
             <th class="p-3 w-32">Tên Hiển Thị (Map)</th>
             <th class="p-3 w-40">Tọa Độ (Lat, Lng)</th>
-            <th class="p-3 w-28 text-center">Trạng Thái</th> <th class="p-3 w-28 text-center">Timeout (Phút)</th> <th class="p-3 w-64">Cấu Hình Ngưỡng Cảnh Báo Gốc & Nhận</th>
+            <th class="p-3 w-28 text-center">Trạng Thái</th> 
+            <th class="p-3 w-64">Cấu Hình Ngưỡng Cảnh Báo Gốc & Nhận</th>
             <th class="p-3 w-32">Trạm Cho (Nguồn)</th>
             <th class="p-3 w-40">Chọn Tag Ánh Xạ</th>
             <th class="p-3 text-center w-36">Hành động</th>
@@ -38,7 +39,7 @@
         </thead>
         <tbody id="dynamicMappingTable" class="divide-y divide-gray-200 text-sm text-gray-700">
           <tr>
-            <td colspan="10" class="p-4 text-center italic text-gray-400">Đang tải cấu trúc dữ liệu trạm từ hệ thống...</td>
+            <td colspan="9" class="p-4 text-center italic text-gray-400">Đang tải cấu trúc dữ liệu trạm từ hệ thống...</td>
           </tr>
         </tbody>
       </table>
@@ -50,14 +51,24 @@
       📊 Đồ Thị Lịch Sử Thông Số Trạm
     </h3>
     
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-xs font-medium">
-      <div>
+    <!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 text-xs font-medium"> <div>
         <label class="block text-slate-600 mb-1 font-semibold">Chọn Trạm Nhận:</label>
         <select id="chartStationSelect" onchange="onChartStationChange()" class="w-full p-2 border rounded bg-white text-gray-700 focus:border-indigo-500 focus:outline-none"></select>
       </div>
       <div>
         <label class="block text-slate-600 mb-1 font-semibold">Chọn Tag Thông Số:</label>
         <select id="chartTagSelect" class="w-full p-2 border rounded bg-white text-gray-700 focus:border-indigo-500 focus:outline-none"></select>
+      </div>
+      <div>
+        <label class="block text-slate-600 mb-1 font-semibold">Chu kỳ dữ liệu:</label>
+        <select id="chartIntervalSelect" class="w-full p-2 border rounded bg-white text-gray-700 focus:border-indigo-500 focus:outline-none font-bold text-indigo-600">
+          <option value="1">1 Phút (Thô)</option>
+          <option value="5" selected>5 Phút (Chuẩn)</option>
+          <option value="15">15 Phút</option>
+          <option value="30">30 Phút</option>
+          <option value="60">1 Giờ</option>
+        </select>
       </div>
       <div>
         <label class="block text-slate-600 mb-1 font-semibold">Từ ngày (00:00 hôm nay):</label>
@@ -68,6 +79,7 @@
         <input type="datetime-local" id="chartEndTime" class="w-full p-2 border rounded text-gray-700 focus:border-indigo-500 focus:outline-none">
       </div>
     </div>
+    <!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->    
     
     <button onclick="loadLineChart()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-5 py-2 rounded shadow transition">
       Xem Đồ Thị Lịch Sử
@@ -78,10 +90,53 @@
     </div>
   </div>
 
+  <div class="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-md border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="md:col-span-2 space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-lg font-bold text-slate-800">🤖 Cấu Hình Hệ Thống Cảnh Báo Chung</h3>
+        <label class="inline-flex items-center cursor-pointer gap-2">
+          <span class="text-xs font-bold text-slate-600">Trạng thái cảnh báo:</span>
+          <select id="tele_enabled" class="p-1 border rounded text-xs font-bold bg-slate-50 focus:outline-none">
+            <option value="1">🟢 KÍCH HOẠT</option>
+            <option value="0">🔴 TẮT</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Telegram Bot Token:</label>
+          <input type="text" id="tele_bot_token" class="w-full p-2 border rounded text-xs focus:outline-none focus:border-indigo-500" placeholder="123456789:ABCdefGhI...">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Telegram Chat ID (Group/User):</label>
+          <input type="text" id="tele_chat_id" class="w-full p-2 border rounded text-xs focus:outline-none focus:border-indigo-500" placeholder="-100123456789">
+        </div>
+      </div>
+    </div>
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-slate-800 border-b pb-2">⏱️ Cấu Cấu Hình Chu Kỳ</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Timeout Sập Mạng (Phút):</label>
+          <input type="number" id="tele_global_timeout" class="w-full p-2 border rounded text-xs focus:outline-none font-bold text-center bg-amber-50" value="5">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Thời gian gửi lặp lại (Phút):</label>
+          <input type="number" id="tele_silent_duration" class="w-full p-2 border rounded text-xs focus:outline-none font-bold text-center" value="30">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="saveTelegramConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded shadow transition w-full">Lưu Cấu Hình</button>
+        <button onclick="testTelegram()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded transition">Gửi Test</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let overviewData = [];
     let selectedSourcesMap = {};
     let chartInstance = null;
+    let globalTimeoutMinutes = 5; // Biến lưu trữ cục bộ mốc timeout hệ thống để tính Online/Offline trên UI
 
     const Toast = Swal.mixin({
       toast: true,
@@ -95,8 +150,10 @@
       }
     });
 
+    // Khởi tạo hệ thống đồng bộ khi load trang
     document.addEventListener("DOMContentLoaded", async () => {
       initDefaultTimeFilters();
+      await loadTelegramConfig(); // Load cái này trước để lấy mốc globalTimeoutMinutes cho hàm render
       await fetchOverview();
     });
 
@@ -116,7 +173,6 @@
       fetchOverview();
     }
 
-    // 🟢 THÊM MỚI: Tính thời gian tương đối từ mốc đồng bộ
     function getRelativeTimeString(currentTsStr) {
       if (!currentTsStr) return 'Không có dữ liệu';
       const diffMs = Date.now() - new Date(currentTsStr).getTime();
@@ -150,7 +206,7 @@
           syncChartDropdowns();
         }
       } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500 font-medium bg-red-50">Lỗi kết nối: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-medium bg-red-50">Lỗi kết nối: ${error.message}</td></tr>`;
       }
     }
 
@@ -164,7 +220,7 @@
       tbody.innerHTML = '';
 
       if (overviewData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-gray-400 italic">Không tìm thấy dữ liệu logger khả dụng.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 italic">Không tìm thấy dữ liệu logger khả dụng.</td></tr>`;
         return;
       }
 
@@ -183,22 +239,13 @@
         const savedSourceId = selectedSourcesMap[targetId] || "";
         const isCurrentlyMappedStation = hasMappedTags(targetStation);
 
-        // 🟢 ĐỔI THÀNH PHÚT: Lấy cấu hình phút từ DB (Nếu DB lưu giây thì chia 60, mặc định là 5 phút)
-        const timeoutMinutes = targetStation.offline_timeout_secs 
-          ? Math.floor(targetStation.offline_timeout_secs / 60) 
-          : 5;
-
-        // 1. Tính toán độ trễ mạng thực tế (Đơn vị: Giây)
         const networkDelaySecs = (targetStation.current_ts && targetStation.data_ts) 
           ? Math.floor((new Date(targetStation.current_ts).getTime() - new Date(targetStation.data_ts).getTime()) / 1000)
           : 0;
 
-        // 2. Quy đổi độ trễ mạng ra phút để hiển thị và so sánh
         const delayMinutes = Math.floor(networkDelaySecs / 60);
         const delayString = delayMinutes > 0 ? `(API trễ ${delayMinutes}p)` : '(Thời gian thực)';
-
-        // 🟢 THUẬT TOÁN ĐÃ ĐỔI SANG PHÚT: So sánh phút trễ thực tế với số phút cài đặt
-        const isOnline = delayMinutes <= timeoutMinutes;
+        const isOnline = delayMinutes <= globalTimeoutMinutes;
 
         const tr = document.createElement('tr');
         tr.id = `row-${targetId}`;
@@ -217,16 +264,12 @@
             <span class="px-2 py-0.5 rounded-full text-[11px] font-bold shadow-sm ${isOnline ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}">
               ${isOnline ? '🟢 Online' : '🔴 Offline'}
             </span>
-            <div class="text-[10px] text-slate-500 mt-1.5 font-semibold" title="Thời gian Server lưu nhận dữ liệu gần nhất">
+            <div class="text-[10px] text-slate-500 mt-1.5 font-semibold">
               Hứng: ${getRelativeTimeString(targetStation.current_ts)}
             </div>
-            <div class="text-[9px] mt-0.5 font-bold ${isOnline ? 'text-amber-600' : 'text-red-600 animate-pulse'}" title="Khoảng lệch giữa mốc đo vật lý và mốc nhận">
+            <div class="text-[9px] mt-0.5 font-bold ${isOnline ? 'text-amber-600' : 'text-red-600 animate-pulse'}">
               ${delayString}
             </div>
-          </td>
-
-          <td class="p-3 border-r text-center">
-            <input type="number" id="timeout_${targetId}" value="${timeoutMinutes}" class="w-full p-1 border rounded text-xs text-center font-bold focus:border-indigo-500 bg-white" placeholder="Phút...">
           </td>
         `;
 
@@ -267,8 +310,7 @@
         overviewData.forEach(item => {
           if (item.logger_id !== targetId) {
             const opt = document.createElement('option');
-            opt.value = item.logger_id;
-            opt.textContent = item.logger_id;
+            opt.value = item.logger_id; opt.textContent = item.logger_id;
             if (item.logger_id === savedSourceId) opt.selected = true;
             select.appendChild(opt);
           }
@@ -335,16 +377,12 @@
       }
     }
 
-    // 🟢 CẬP NHẬT: Gửi thêm thông số timeout cấu hình từ UI về API
     async function saveRowMapping(targetStationId, sourceLoggerId, rowElement) {
       const display_name = document.getElementById(`displayName_${targetStationId}`).value;
       const lat = document.getElementById(`lat_${targetStationId}`).value;
       const lng = document.getElementById(`lng_${targetStationId}`).value;
-      
-      const timeoutInput = document.getElementById(`timeout_${targetStationId}`).value;
-      const offline_timeout_secs = timeoutInput ? parseInt(timeoutInput, 10) * 60 : 300;
+
       const checkboxes = document.querySelectorAll(`input[name="sourceTags_${targetStationId}"]:checked`);
-      
       const selectedTags = Array.from(checkboxes).map(cb => cb.value);
 
       const thresholdContainers = rowElement.querySelectorAll('.row-tag-threshold-container');
@@ -366,8 +404,8 @@
             source: "WEB_MATRIX_CONFIG",
             source_logger_id: sourceLoggerId && sourceLoggerId !== "" ? sourceLoggerId : null, 
             source_tags: sourceLoggerId ? selectedTags : [],     
-            target_station_id: targetStationId, display_name, lat, lng, alert_thresholds,
-            offline_timeout_secs // 🟢 Gửi kèm tham số lên Controller
+            target_station_id: targetStationId, 
+            display_name, lat, lng, alert_thresholds
           })
         });
 
@@ -391,7 +429,6 @@
 
         if (result.success) {
           Toast.fire({ icon: 'success', title: `Đã xóa sạch trạm [${stationId}] khỏi hệ thống` });
-          
           const targetRow = document.getElementById(`row-${stationId}`);
           if (targetRow) {
             targetRow.style.opacity = "0";
@@ -443,11 +480,13 @@
       }
     }
 
+    // 🟢 ĐÃ KHÔI PHỤC VÀ FIX CHU KỲ LỌC: Hàm loadLineChart() gọi khi bấm nút Xem Đồ Thị
     async function loadLineChart() {
       const stationId = document.getElementById('chartStationSelect').value;
       const selectedTag = document.getElementById('chartTagSelect').value;
       const startTime = document.getElementById('chartStartTime').value;
       const endTime = document.getElementById('chartEndTime').value;
+      const intervalMinutes = document.getElementById('chartIntervalSelect').value;
 
       if (!stationId) { 
         Toast.fire({ icon: 'info', title: 'Vui lòng chọn trạm cần xem đồ thị' });
@@ -468,7 +507,7 @@
 
       try {
         const fetchPromises = tagsToFetch.map(tagKey => {
-          let url = `/api/overview/history-chart?station_id=${stationId}&tag_key=${tagKey}`;
+          let url = `/api/overview/history-chart?station_id=${stationId}&tag_key=${tagKey}&interval_mins=${intervalMinutes}`;
           if (startParam) url += `&start_time=${encodeURIComponent(startParam)}`;
           if (endParam) url += `&end_time=${encodeURIComponent(endParam)}`;
           return fetch(url).then(res => res.json());
@@ -480,24 +519,18 @@
 
         results.forEach((res, index) => {
           const currentTagKey = res.tag_key || tagsToFetch[index];
-          
           if (res.success && Array.isArray(res.data) && res.data.length > 0) {
             if (globalLabels.length === 0) {
               globalLabels = res.data.map(item => new Date(item.timestamp).toLocaleString('vi-VN'));
             }
             const colors = ['rgb(79, 70, 229)', 'rgb(220, 38, 38)', 'rgb(5, 150, 105)', 'rgb(217, 119, 6)', 'rgb(124, 58, 237)'];
             const color = colors[index % colors.length];
-            
             datasets.push({
               label: String(currentTagKey).toUpperCase(), 
               data: res.data.map(item => item.value),
               borderColor: color,
               backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'), 
-              borderWidth: 2,
-              pointRadius: 2, 
-              pointHoverRadius: 5,
-              tension: 0.15,
-              fill: selectedTag !== "ALL"
+              borderWidth: 2, tension: 0.15, fill: selectedTag !== "ALL"
             });
           }
         });
@@ -516,43 +549,92 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-              mode: 'index',
-              intersect: false 
-            },
-            plugins: {
-              legend: {
-                display: true, 
-                position: 'top',
-                labels: {
-                  font: { size: 12, weight: 'bold' },
-                  boxWidth: 15
-                }
-              },
-              tooltip: {
-                enabled: true, 
-                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                titleFont: { size: 13, weight: 'bold' },
-                bodyFont: { size: 12 },
-                padding: 10,
-                cornerRadius: 6
-              }
-            },
-            scales: {
-              x: {
-                grid: { display: false },
-                ticks: { maxTicksLimit: 12, font: { size: 10 } }
-              },
-              y: {
-                grid: { color: 'rgba(226, 232, 240, 0.6)' },
-                ticks: { font: { size: 10 } }
-              }
-            }
+            interaction: { mode: 'index', intersect: false }
           }
         });
-
       } catch (error) {
         Toast.fire({ icon: 'error', title: 'Lỗi đồng bộ sơ đồ' });
+      }
+    }
+
+    // --- ĐOẠN CODE QUẢN LÝ CẤU HÌNH TELEGRAM DÙNG CHUNG ---
+    async function loadTelegramConfig() {
+      try {
+        const res = await fetch('/api/alerts/config');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            const config = data[0];
+            document.getElementById('tele_bot_token').value = config.bot_token || '';
+            document.getElementById('tele_chat_id').value = config.chat_id || '';
+            document.getElementById('tele_silent_duration').value = config.alert_interval_minutes || 30;
+            document.getElementById('tele_global_timeout').value = config.global_offline_timeout_mins || 5;
+            document.getElementById('tele_enabled').value = config.enabled !== undefined ? config.enabled : 1;
+            
+            // Đồng bộ biến toàn cục để UI vẽ màu xanh/đỏ (Online/Offline) chuẩn xác theo cấu hình mới
+            if (typeof globalTimeoutMinutes !== 'undefined') {
+              globalTimeoutMinutes = config.global_offline_timeout_mins || 5;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Không thể tải cấu hình Telegram:', err);
+      }
+    }
+
+    async function saveTelegramConfig() {
+      const bot_token = document.getElementById('tele_bot_token').value.trim();
+      const chat_id = document.getElementById('tele_chat_id').value.trim();
+      const alert_interval_minutes = parseInt(document.getElementById('tele_silent_duration').value) || 30;
+      const global_offline_timeout_mins = parseInt(document.getElementById('tele_global_timeout').value) || 5;
+      const enabled = parseInt(document.getElementById('tele_enabled').value);
+
+      if (!bot_token || !chat_id) {
+        Swal.fire('Thất bại', 'Vui lòng điền đầy đủ Token và Chat ID!', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/alerts/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bot_token, chat_id, alert_interval_minutes, global_offline_timeout_mins, enabled })
+        });
+
+        if (res.ok) {
+          Swal.fire('Thành công', 'Đã lưu cấu hình và đồng bộ thời gian Timeout sập mạng chung!', 'success');
+          await loadTelegramConfig();
+          if (typeof fetchOverview === 'function') fetchOverview(); // Cập nhật lại màu sắc bảng ma trận ngay lập tức
+        } else {
+          Swal.fire('Lỗi', 'Không thể lưu cấu hình hệ thống.', 'error');
+        }
+      } catch (err) {
+        Swal.fire('Lỗi kết nối', err.message, 'error');
+      }
+    }
+
+    async function testTelegram() {
+      const bot_token = document.getElementById('tele_bot_token').value.trim();
+      const chat_id = document.getElementById('tele_chat_id').value.trim();
+      if (!bot_token || !chat_id) {
+        Swal.fire('Nhắc nhở', 'Hãy điền Token và Chat ID trước khi test!', 'warning');
+        return;
+      }
+      Swal.fire({ title: 'Đang gửi thử...', didOpen: () => Swal.showLoading() });
+      try {
+        const res = await fetch('/api/alerts/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bot_token, chat_id })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          Swal.fire('Thành công', 'Hệ thống đã gửi một tin nhắn test. Hãy kiểm tra Telegram của bạn!', 'success');
+        } else {
+          Swal.fire('Thất bại', data.error || 'Kiểm tra lỗi kết nối bot!', 'error');
+        }
+      } catch (err) {
+        Swal.fire('Lỗi', err.message, 'error');
       }
     }
   </script>
