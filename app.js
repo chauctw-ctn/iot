@@ -7,10 +7,11 @@ const path = require('path');
 const app = express();
 
 const stationRoutes = require('./routes/station.route');
-const overviewRoutes = require('./routes/overview.route'); // <-- Đã sửa thành công về thư mục routes gốc
+const overviewRoutes = require('./routes/overview.route'); 
 const alertRoutes = require('./routes/alert.route'); 
 const { handleHttpPush } = require('./gateways/http_gateway');
 const { startMqttGatewayListener } = require('./gateways/mqtt_gateway');
+const kpiRoutes = require('./routes/kpi.route');
 
 // Tích hợp Alert Engine quản lý tự động quét lỗi mạng ngầm
 const { checkSystemOfflineAlert } = require('./services/alert_engine');
@@ -26,11 +27,19 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+// 🟢 THÊM ROUTE NÀY ĐỂ CHẠY TEST LAYOUT GIAO DIỆN
+app.get('/layout', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'layout.html'));
+});
+
+
+
 // Đăng ký các Endpoint API Gateways và Routes UI
 app.post('/api/gateway/push', handleHttpPush);
 app.use('/api/stations', stationRoutes);
 app.use('/api/overview', overviewRoutes); // <-- Sử dụng trực tiếp biến đã sửa ở trên
 app.use('/api/alerts', alertRoutes); 
+app.use('/api/kpi', kpiRoutes);
 
 // Bẫy lỗi toàn cục để tránh việc App bị sập bất thình lình khi chạy ngầm trên Render
 process.on('unhandledRejection', (reason, promise) => {

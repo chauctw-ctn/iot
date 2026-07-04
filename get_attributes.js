@@ -96,3 +96,17 @@ async function getDeviceTelemetry(token) {
 }
 
 main();
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

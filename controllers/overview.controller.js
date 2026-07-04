@@ -34,11 +34,12 @@ exports.getLatestOverview = async (req, res) => {
         a.logger_id, 
         a.max_current_ts AS last_updated, 
         a.max_current_ts AS current_ts, 
-        a.max_data_ts AS data_ts, -- 🟢 Gửi thêm mốc thời gian gốc đo về cho UI
+        a.max_data_ts AS data_ts, 
         a.tags, 
         s.display_name, 
         s.lat, 
         s.lng,
+        s.last_known_status, -- 🟢 THÊM MỚI: Lấy trạng thái lưu trong bảng logger_stations
         COALESCE(s.offline_timeout_secs, 300) AS offline_timeout_secs
       FROM aggregated_tags a 
       LEFT JOIN logger_stations s ON a.logger_id = s.station_id 

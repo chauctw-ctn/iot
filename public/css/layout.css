@@ -1,0 +1,340 @@
+/* --- RESET & BIẾN TOÀN CỤC --- */
+:root {
+    --bg-main: #f4f6f9;
+    --bg-sidebar: #1e293b;
+    --bg-sidebar-hover: #334155;
+    --bg-sidebar-active: #0ea5e9;
+    --text-light: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-dark: #1e293b;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --header-height: 70px;
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 70px;
+    --transition-speed: 0.3s;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-dark);
+    overflow: hidden;
+}
+
+/* --- BỐ CỤC KHUNG CHÍNH --- */
+.dashboard-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* --- THANH SIDEBAR --- */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--bg-sidebar);
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-speed) ease;
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+.sidebar-brand {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid #2e3e56;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.brand-icon {
+    font-size: 1.5rem;
+    color: var(--bg-sidebar-active);
+    margin-right: 15px;
+    transition: margin var(--transition-speed);
+}
+
+.brand-text {
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.menu-item i {
+    font-size: 1.2rem;
+    width: 25px;
+    margin-right: 15px;
+    text-align: center;
+}
+
+.menu-item:hover {
+    background-color: var(--bg-sidebar-hover);
+    color: var(--text-light);
+}
+
+.menu-item.active {
+    background-color: var(--bg-sidebar-active);
+    color: var(--text-light);
+    border-left: 4px solid #ffffff;
+}
+
+.sidebar-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #2e3e56;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+.sidebar-footer i {
+    margin-right: 15px;
+    font-size: 1rem;
+}
+
+/* --- TRẠNG THÁI THU GỌN SIDEBAR (COLLAPSED) --- */
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .menu-text {
+    display: none;
+}
+
+.sidebar.collapsed .brand-icon {
+    margin-right: 0;
+}
+
+/* --- PHẦN NỘI DUNG CHÍNH (MAIN WRAPPER) --- */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Tránh lỗi vỡ layout khi chứa biểu đồ rộng */
+}
+
+/* HEADER */
+.main-header {
+    height: var(--header-height);
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25px;
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.toggle-sidebar-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--text-dark);
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.toggle-sidebar-btn:hover {
+    background-color: var(--bg-main);
+}
+
+.page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.system-timezone {
+    font-size: 0.9rem;
+    background-color: #f0fdf4;
+    color: #166534;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #bbf7d0;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* VÙNG CHỨA NỘI DUNG CHÍNH ĐỘNG (SCROLL ĐỘC LẬP) */
+/* --- VÙNG CHỨA NỘI DUNG CHÍNH (ĐÃ CẬP NHẬT) --- */
+.main-content {
+    flex: 1;
+    padding: 0px;            /* Khoảng cách đệm xung quanh nội dung chính */
+    overflow-y: auto;         /* Tự động xuất hiện thanh cuộn dọc nếu nội dung quá dài */
+    
+    /* Kích hoạt Flexbox để ép các thẻ con trực tiếp bên trong kéo giãn hết cỡ */
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- THÀNH PHẦN THỬ NGHIỆM CHIẾM HẾT DIỆN TÍCH TRỐNG --- */
+.placeholder-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    
+    /* Quyết định: Chiếm 100% chiều cao và chiều rộng còn lại trong .main-content */
+    flex: 1;
+    width: 100%;
+    
+    /* Căn giữa nội dung chữ/icon vào chính giữa màn hình lớn */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Chỉnh lại khoảng cách cho text bên trong card */
+.placeholder-card h3 {
+    margin-bottom: 15px;
+    color: #0284c7;
+    font-size: 1.6rem;         /* Tăng kích thước chữ tiêu đề cho cân xứng */
+}
+
+.placeholder-card p {
+    color: #64748b;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-size: 1.05rem;
+}
+
+
+/* --- CSS BỔ SUNG CHO CÁC TRANG CON --- */
+.page-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    flex: 1;
+    width: 100%;
+}
+
+.page-card h3 {
+    color: var(--text-dark);
+    margin-bottom: 12px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-card p {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Hiệu ứng mượt mà khi chuyển đổi cấu trúc HTML */
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Spinner trạng thái chờ load dữ liệu mạng chậm */
+.loading-spinner {
+    margin: auto;
+    font-size: 1.1rem;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+/* --- ĐÁP ỨNG THIẾT BỊ DI ĐỘNG (RESPONSIVE) --- */
+@media (max-width: 768px) {
+    .sidebar {
+        position: absolute;
+        left: -260px;
+        height: 100%;
+    }
+    .sidebar.collapsed {
+        left: 0;
+        width: var(--sidebar-width);
+    }
+    .sidebar.collapsed .brand-text,
+    .sidebar.collapsed .menu-text {
+        display: inline;
+    }
+}
+
+/* Thêm vào cuối file layout.css hoặc tìm nhóm .sidebar-brand */
+.brand-logo-img {
+    height: 40px;          /* Chiều cao vừa vặn với thanh header 70px */
+    width: auto;           /* Tự động co giãn theo tỷ lệ */
+    margin-right: 12px;    /* Khoảng cách với chữ bên phải */
+    object-fit: contain;   /* Giữ nguyên tỉ lệ ảnh */
+    transition: all 0.3s ease;
+}
+
+/* Khi sidebar thu gọn, nếu logo hình vuông thì giữ nguyên, nếu logo chữ nhật dài có thể ẩn đi hoặc thu nhỏ thêm */
+.sidebar.collapsed .brand-logo-img {
+    height: 30px;
+    margin-right: 0;       /* Căn giữa khi thu gọn */
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Giám sát IoT & KPI Nhà máy Nước</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/layout.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <img src="/images/logo.png" alt="Logo Công ty" class="brand-logo-img">
+                <span class="brand-text">CAWACO</span>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="#" data-page="overview" class="menu-item active">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span class="menu-text">Dashboard tổng quan</span>
+                </a>
+                <a href="#" data-page="logger-map" class="menu-item">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span class="menu-text">Bản đồ logger</span>
+                </a>
+                <a href="#" data-page="water-quality" class="menu-item">
+                    <i class="fa-solid fa-droplet-slash"></i>
+                    <span class="menu-text">Chất lượng nước</span>
+                </a>
+                <a href="#" data-page="statistics" class="menu-item">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span class="menu-text">Dữ liệu thống kê</span>
+                </a>
+                <a href="#" data-page="system-config" class="menu-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="menu-text">Cấu hình hệ thống</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span class="menu-text">Hệ thống: v1.0.0</span>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            
+            <header class="main-header">
+                <div class="header-left">
+                    <button class="toggle-sidebar-btn" id="toggleSidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h2 class="page-title" id="pageTitle">Dashboard tổng quan</h2>
+                </div>
+                
+                <div class="header-right">
+                    <div class="system-timezone">
+                        <i class="fa-solid fa-earth-asia"></i> <span>TZ: Asia/Ho_Chi_Minh</span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar"><i class="fa-solid fa-user-gear"></i></div>
+                        <span class="username">Kỹ sư vận hành</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content" id="mainContent">
+                <div class="loading-spinner">Đang tải phân hệ...</div>
+            </main>
+            
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggleBtn = document.getElementById("toggleSidebar");
+            const sidebar = document.getElementById("sidebar");
+            const menuItems = document.querySelectorAll(".menu-item");
+            const mainContent = document.getElementById("mainContent");
+            const pageTitle = document.getElementById("pageTitle");
+
+            // 1. Quản lý Đóng / Mở Sidebar
+            if (localStorage.getItem("sidebar-collapsed") === "true") {
+                sidebar.classList.add("collapsed");
+            }
+            toggleBtn.addEventListener("click", () => {
+                sidebar.classList.toggle("collapsed");
+                localStorage.setItem("sidebar-collapsed", sidebar.classList.contains("collapsed"));
+            });
+
+            // 2. Hàm CORE nạp động nội dung HTML từ thư mục /pages/
+            // 2. Hàm CORE nạp động nội dung HTML từ thư mục /pages/
+            async function loadPage(pageName, pageText) {
+                mainContent.innerHTML = `<div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối dữ liệu phân hệ...</div>`;
+                
+                try {
+                    const response = await fetch(`/pages/${pageName}.html`);
+                    if (!response.ok) throw new Error("Không thể tải trang mục tiêu.");
+                    
+                    // 🟢 ĐÃ SỬA: Phải đọc text() trước rồi mới gán và thực thi Script
+                    const htmlContent = await response.text(); 
+                    mainContent.innerHTML = htmlContent;
+                    
+                    // Trích xuất và ép trình duyệt thực thi lại toàn bộ thẻ script có trong trang con
+                    const scripts = mainContent.querySelectorAll("script");
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement("script");
+                        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
+                    
+                    // Cập nhật tiêu đề trên thanh Header cho khớp với trang hiện tại
+                    pageTitle.innerText = pageText;
+                    
+                    // Lưu lại lịch sử trang cuối cùng người dùng xem để khi F5 không bị quay về trang đầu
+                    localStorage.setItem("active-page-route", pageName);
+                    localStorage.setItem("active-page-title", pageText);
+                } catch (error) {
+                    mainContent.innerHTML = `
+                        <div class="page-card" style="border-color: #fca5a5; background: #fef2f2; flex: 1; width: 100%;">
+                            <h3 style="color: #dc2626;"><i class="fa-solid fa-triangle-exclamation"></i> Lỗi tải phân hệ</h3>
+                            <p style="color: #991b1b;">Chi tiết: ${error.message}. Vui lòng kiểm tra lại file trong thư mục public/pages/.</p>
+                        </div>`;
+                }
+            }
+            // 3. Sự kiện Click chuyển trang của Menu Sidebar
+            menuItems.forEach(item => {
+                item.addEventListener("click", (e) => {
+                    e.preventDefault(); // Chặn hành vi nhảy trang tải lại toàn bộ của thẻ a
+                    
+                    // Đổi class Active sáng đèn menu
+                    menuItems.forEach(i => i.classList.remove("active"));
+                    item.classList.add("active");
+                    
+                    // Đọc thuộc tính để lấy tên trang và tiến hành load
+                    const pageName = item.getAttribute("data-page");
+                    const pageText = item.querySelector(".menu-text").innerText;
+                    
+                    loadPage(pageName, pageText);
+                });
+            });
+
+            // 4. Khởi tạo: Tự động khôi phục lại trang cuối cùng trước khi F5 hoặc load mặc định trang đầu
+            const savedPage = localStorage.getItem("active-page-route") || "overview";
+            const savedTitle = localStorage.getItem("active-page-title") || "Dashboard tổng quan";
+            
+            // Tìm đúng item menu đã lưu để sáng đèn lên
+            menuItems.forEach(i => {
+                if(i.getAttribute("data-page") === savedPage) {
+                    i.classList.add("active");
+                } else {
+                    i.classList.remove("active");
+                }
+            });
+            
+            // Tiến hành kích hoạt nạp mồi trang ban đầu
+            loadPage(savedPage, savedTitle);
+        });
+    </script>
+</body>
+</html>

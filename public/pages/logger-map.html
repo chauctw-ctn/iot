@@ -1,0 +1,384 @@
+<div class="map-wrapper animate-fade-in" style="display: flex; flex-direction: column; width: 100%; height: 100%; gap: 0px;">
+    
+    <div class="map-filter-bar">
+        <div class="filter-group">
+            <label><i class="fa-solid fa-signal"></i> Trạng thái:</label>
+            <select id="filterStatus">
+                <option value="all">-- Tất cả trạng thái --</option>
+                <option value="online">Trực tuyến (Online)</option>
+                <option value="offline">Mất tín hiệu (Offline)</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label><i class="fa-solid fa-layer-group"></i> Nhóm trạm:</label>
+            <select id="filterGroup">
+                <option value="all">-- Tất cả các nhóm --</option>
+            </select>
+        </div>
+        
+        <div class="map-stats">
+            Tổng số: <b id="statTotal">0</b> | 
+            <span class="text-online">Online: <b id="statOnline">0</b></span> | 
+            <span class="text-offline">Offline: <b id="statOffline">0</b></span>
+        </div>
+    </div>
+
+    <div id="map" style="flex: 1; min-height: 500px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1;"></div>
+</div>
+
+<style>
+    .map-filter-bar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        padding: 12px 20px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        flex-wrap: wrap;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 10px;
+    }
+
+    /* STYLE CHUNG CHO NHÃN TRẠM */
+    .leaflet-tooltip.custom-station-label {
+        border-radius: 4px;
+        padding: 3px 7px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+    }
+
+    /* BACKGROUND KHI TRẠM ONLINE (XANH NHẠT, CHỮ XANH ĐẬM) */
+    .leaflet-tooltip.custom-station-label.label-online {
+        background-color: #f0fdf4 !important;
+        border: 1px solid #bbf7d0 !important;
+        color: #166534 !important;
+    }
+
+    /* BACKGROUND KHI TRẠM OFFLINE (ĐỎ NHẠT, CHỮ ĐỎ ĐẬM) */
+    .leaflet-tooltip.custom-station-label.label-offline {
+        background-color: #fef2f2 !important;
+        border: 1px solid #fca5a5 !important;
+        color: #991b1b !important;
+    }
+
+    /* Ẩn mũi tên nhọn mặc định của tooltip Leaflet */
+    .leaflet-tooltip-top.custom-station-label::before {
+        border-top-color: transparent;
+    }
+
+    .filter-group { display: flex; align-items: center; gap: 8px; }
+    .filter-group label { font-weight: 600; font-size: 0.9rem; color: var(--text-dark); }
+    .filter-group select { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 4px; outline: none; font-size: 0.9rem; background-color: var(--bg-main); }
+    .map-stats { font-size: 0.9rem; margin-left: auto; font-weight: 500; }
+    .text-online { color: #166534; margin: 0 5px; }
+    .text-offline { color: #991b1b; }
+    .map-popup-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
+    .map-popup-table th { background-color: #f1f5f9; color: #334155; text-align: left; padding: 4px 8px; border-bottom: 2px solid #cbd5e1; }
+    .map-popup-table td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+    .leaflet-popup-content-wrapper { border-radius: 8px; padding: 5px; max-width: 350px; }
+</style>
+
+<script>
+(() => {
+    function cdnLoader(url, type) {
+        return new Promise((resolve) => {
+            const id = btoa(url).replace(/=/g, '');
+            if (document.getElementById(id)) return resolve();
+            
+            let el;
+            if (type === 'css') {
+                el = document.createElement('link');
+                el.rel = 'stylesheet';
+                el.href = url;
+            } else {
+                el = document.createElement('script');
+                el.src = url;
+            }
+            el.id = id;
+            el.onload = () => resolve();
+            document.head.appendChild(el);
+        });
+    }
+
+    async function startModule() {
+        await cdnLoader('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'css');
+        await cdnLoader('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'js');
+
+        let mapContainer = document.getElementById('map');
+        if (!mapContainer) return;
+
+        // --- CẤU HÌNH CÁC LỚP BẢN ĐỒ NỀN (BASE MAP LAYERS) ---
+        const GOOGLE_MAPS_API_KEY = 'AIzaSyAyK0kR6vJbz16MxVEkYat34RKSALeLGrw_';
+
+        const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        });
+
+        const cartoDBVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+        
+        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 19
+        });
+        
+        const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data: © OpenStreetMap, <a href="http://viewfinderpanoramas.org">SRTM</a> | Style: © OpenTopoMap',
+            maxZoom: 17
+        });
+        
+        const esriWorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri',
+            maxZoom: 19
+        });
+        
+        const googleRoadmap = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=' + GOOGLE_MAPS_API_KEY, {
+            attribution: '© Google Maps',
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        
+        const googleSatellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=' + GOOGLE_MAPS_API_KEY, {
+            attribution: '© Google Maps',
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        
+        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&key=' + GOOGLE_MAPS_API_KEY, {
+            attribution: '© Google Maps',
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        
+        const googleTerrain = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}&key=' + GOOGLE_MAPS_API_KEY, {
+            attribution: '© Google Maps',
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        // Khởi tạo bản đồ với lớp nền OpenStreetMap làm mặc định
+        let map = L.map('map', { 
+            closePopupOnClick: false,
+            layers: [openStreetMap]
+        }).setView([10.762622, 106.660172], 13);
+        
+        // Đóng gói danh sách Base Maps để đưa vào bộ điều khiển chuyển đổi layer của Leaflet
+        const baseMaps = {
+            "<span style='font-weight:500;color:#334155;'><i class='fa-solid fa-map'></i> OpenStreetMap</span>": openStreetMap,
+            "<span style='font-weight:500;color:#334155;'><i class='fa-solid fa-compass shadow-sm'></i> CartoDB Voyager</span>": cartoDBVoyager,
+            "<span style='font-weight:500;color:#334155;'><i class='fa-solid fa-mountain-sun'></i> Địa hình OpenTopo</span>": openTopoMap,
+            "<span style='font-weight:500;color:#334155;'><i class='fa-solid fa-road'></i> Đường phố Esri</span>": esriWorldStreetMap,
+            "<span style='font-weight:500;color:#334155;'><i class='fa-solid fa-earth-asia'></i> Vệ tinh Esri</span>": esriWorldImagery,
+            "<span style='font-weight:500;color:#1d4ed8;'><i class='fa-brands fa-google'></i> Google Bản đồ</span>": googleRoadmap,
+            "<span style='font-weight:500;color:#1d4ed8;'><i class='fa-brands fa-google'></i> Google Vệ tinh</span>": googleSatellite,
+            "<span style='font-weight:500;color:#1d4ed8;'><i class='fa-brands fa-google'></i> Google Lai (Hybrid)</span>": googleHybrid,
+            "<span style='font-weight:500;color:#1d4ed8;'><i class='fa-brands fa-google'></i> Google Địa hình</span>": googleTerrain
+        };
+
+        // Thêm Icon Click chuyển đổi map ở góc trên bên phải bản đồ
+        L.control.layers(baseMaps, null, {
+            position: 'topright', 
+            collapsed: true // Thu gọn thành icon, khi di chuột vào hoặc click sẽ mở rộng danh sách tuyển chọn
+        }).addTo(map);
+
+        let markersLayer = L.layerGroup().addTo(map);
+        let rawStationsData = [];
+        let activePopupStationId = null;
+        let globalTimeoutMinutes = 5;
+
+        // Tải cấu hình cảnh báo chung để đồng bộ mốc thời gian timeout sập mạng
+        try {
+            const resConfig = await fetch('/api/alerts/config');
+            if (resConfig.ok) {
+                const configData = await resConfig.json();
+                if (configData && configData.length > 0) {
+                    globalTimeoutMinutes = parseInt(configData[0].global_offline_timeout_mins, 10) || 5;
+                }
+            }
+        } catch (e) {
+            console.warn("Lỗi đồng bộ cấu hình Alert, sử dụng mặc định 5 phút:", e);
+        }
+
+        const onlineIcon = L.icon({
+            iconUrl: '/images/PS_GR.gif',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
+
+        const offlineIcon = L.icon({
+            iconUrl: '/images/DIS.gif',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
+
+        map.on('popupopen', (e) => {
+            if (e.popup._source && e.popup._source.options.stationId) {
+                activePopupStationId = e.popup._source.options.stationId;
+            }
+        });
+        map.on('popupclose', () => {
+            activePopupStationId = null;
+        });
+
+        async function fetchMapData() {
+            try {
+                const res = await fetch('/api/overview/latest');
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error);
+                rawStationsData = json.data;
+                
+                buildGroupFilter(rawStationsData);
+                renderMarkers();
+            } catch (err) {
+                console.error("Lỗi API Bản đồ:", err.message);
+            }
+        }
+
+        function buildGroupFilter(data) {
+            const groupSelect = document.getElementById("filterGroup");
+            if (!groupSelect) return;
+            
+            const currentSelectedValue = groupSelect.value;
+            const groups = new Set();
+            data.forEach(st => {
+                if (st.logger_id && st.logger_id.includes('_')) {
+                    groups.add(st.logger_id.split('_')[0]);
+                }
+            });
+
+            if (groups.size === (groupSelect.options.length - 1)) return;
+
+            while (groupSelect.options.length > 1) { groupSelect.remove(1); }
+            groups.forEach(g => {
+                const opt = document.createElement("option");
+                opt.value = g;
+                opt.innerText = `Nhóm ${g}`;
+                groupSelect.appendChild(opt);
+            });
+            groupSelect.value = currentSelectedValue;
+        }
+
+        function renderMarkers() {
+            markersLayer.clearLayers();
+            const selectedStatus = document.getElementById("filterStatus").value;
+            const selectedGroup = document.getElementById("filterGroup").value;
+            let total = 0, online = 0, offline = 0;
+            let bounds = [];
+            let markerToReopen = null;
+
+            rawStationsData.forEach(st => {
+                if (!st.lat || !st.lng) return;
+                const lat = parseFloat(st.lat);
+                const lng = parseFloat(st.lng);
+                
+                // 🟢 ĐỒNG BỘ: Tính toán trạng thái dựa trên độ trễ thời gian tương tự như tổng quan overview.html
+                const networkDelaySecs = (st.current_ts && st.data_ts) 
+                    ? Math.floor((new Date(st.current_ts).getTime() - new Date(st.data_ts).getTime()) / 1000)
+                    : 0;
+                const delayMinutes = Math.floor(networkDelaySecs / 60);
+                
+                // Đồng bộ hóa trạng thái Online dựa trên cấu hình timeout chung hoặc riêng của trạm
+                const allowedTimeoutMins = st.offline_timeout_secs ? (st.offline_timeout_secs / 60) : globalTimeoutMinutes;
+                const isOnline = delayMinutes <= allowedTimeoutMins;
+
+                const stationGroup = st.logger_id.split('_')[0];
+
+                if (selectedStatus === "online" && !isOnline) return;
+                if (selectedStatus === "offline" && isOnline) return;
+                if (selectedGroup !== "all" && stationGroup !== selectedGroup) return;
+
+                total++;
+                if (isOnline) online++; else offline++;
+
+                // Đẩy hẳn mức zIndexOffset của trạm Offline lên cực đại để hiển thị trên cùng lớp layout bản đồ
+                const marker = L.marker([lat, lng], {
+                    icon: isOnline ? onlineIcon : offlineIcon,
+                    stationId: st.logger_id,
+                    zIndexOffset: isOnline ? 10 : 99999 
+                });
+
+                let tagsHtml = "";
+                if (st.tags && Object.keys(st.tags).length > 0) {
+                    Object.keys(st.tags).forEach(tagKey => {
+                        const tagData = st.tags[tagKey];
+                        tagsHtml += `<tr><td><b>${tagKey}</b></td><td style="color:#0284c7; font-weight:600">${tagData.value}</td><td>${tagData.data_ts ? tagData.data_ts.slice(11, 19) : 'N/A'}</td></tr>`;
+                    });
+                } else {
+                    tagsHtml = `<tr><td colspan="3" style="text-align:center; color:#94a3b8">Không có tag</td></tr>`;
+                }
+
+                marker.bindPopup(`
+                    <div>
+                        <h4 style="margin:0 0 4px 0;">${st.display_name || st.logger_id}</h4>
+                        <div style="margin-bottom: 6px;">
+                            <span style="font-size:0.75rem; padding:2px 6px; border-radius:10px; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#15803d':'#b91c1c'}">
+                                ${isOnline ? '● Trực tuyến' : '● Mất kết nối'}
+                            </span>
+                        </div>
+                        <table class="map-popup-table"><thead><tr><th>Tag</th><th>Trị</th><th>Giờ</th></tr></thead><tbody>${tagsHtml}</tbody></table>
+                    </div>
+                `);
+                
+                // Phân nhánh Class của Tooltip động theo trạng thái kết nối
+                const labelStatusClass = isOnline ? 'label-online' : 'label-offline';
+                
+                marker.bindTooltip(st.display_name || st.logger_id, { 
+                    permanent: true, 
+                    direction: 'top', 
+                    offset: [0, -2], 
+                    className: `custom-station-label ${labelStatusClass}` 
+                });
+                
+                markersLayer.addLayer(marker);
+                bounds.push([lat, lng]);
+
+                if (activePopupStationId === st.logger_id) {
+                    markerToReopen = marker;
+                }
+            });
+
+            document.getElementById("statTotal").innerText = total;
+            document.getElementById("statOnline").innerText = online;
+            document.getElementById("statOffline").innerText = offline;
+
+            if (markerToReopen) {
+                markerToReopen.openPopup();
+            }
+
+            if (bounds.length > 0 && map && selectedStatus === "all" && selectedGroup === "all" && !activePopupStationId) {
+                map.fitBounds(bounds, { padding: [40, 40] });
+            }
+        }
+
+        function onFilterChange() {
+            activePopupStationId = null;
+            renderMarkers();
+        }
+
+        document.getElementById("filterStatus").addEventListener("change", onFilterChange);
+        document.getElementById("filterGroup").addEventListener("change", onFilterChange);
+        
+        fetchMapData();
+
+        const mapInterval = setInterval(fetchMapData, 30000);
+        const observer = new MutationObserver(() => {
+            if (!document.getElementById("map")) {
+                clearInterval(mapInterval);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.getElementById("mainContent"), { childList: true });
+    }
+
+    setTimeout(startModule, 50);
+})();
+</script>
