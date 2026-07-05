@@ -27,14 +27,13 @@
                 <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Lọc Theo Chỉ Số (Tag)</label>
                 <select id="filterTagSelect" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; font-weight: 600; color: #0284c7;">
                     <option value="ALL">-- Tất cả chỉ số --</option>
-                    <option value="flow">Flow (Lưu lượng)</option>
-                    <option value="totalIndex">TotalIndex (Đồng hồ lũy tiến)</option>
-                    <option value="pressure">Pressure (Áp lực)</option>
-                    <option value="level">Level (Mực nước)</option>
-                    <option value="ph">pH (Độ kiềm/axit)</option>
-                    <option value="tds">TDS (Tổng chất rắn hòa tan)</option>
-                    <option value="no3">NO3 (Nitrat)</option>
-                    <option value="nh4">NH4 (Amoni)</option>
+                    <option value="flow">Lưu lượng</option>
+                    <option value="totalIndex">Tổng chỉ số</option>                    
+                    <option value="level">Mực nước</option>
+                    <option value="ph">Độ pH</option>
+                    <option value="tds">TDS</option>
+                    <option value="no3">Nitrat</option>
+                    <option value="nh4">Amoni</option>
                 </select>
             </div>
 
@@ -69,7 +68,7 @@
 
     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h4 style="margin: 0; font-size: 0.9rem; color: #475569;"><i class="fa-solid fa-table-list"></i> Ma trận thông số đo chi tiết (Tối ưu lọc động theo Trạm & Tag)</h4>
+            <h4 style="margin: 0; font-size: 0.9rem; color: #475569;"><i class="fa-solid fa-table-list"></i> Ma trận thông số đo chi tiết</h4>
             <span id="txtDataCount" style="font-size: 0.8rem; color: #64748b; font-weight: 500;"></span>
         </div>
         
@@ -78,7 +77,7 @@
                 <thead id="statsThead" style="position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: 0 1px 0 #cbd5e1;">
                     <tr>
                         <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #334155;">STT</th>
-                        <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #334155; text-align: left;">Thời gian (data_ts)</th>
+                        <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #334155; text-align: left;">Thời gian</th>
                         <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #64748b; font-style: italic;">Chưa có dữ liệu trích xuất...</th>
                     </tr>
                 </thead>
@@ -96,6 +95,19 @@
 (() => {
     let globalStationsList = [];
     const ALL_TAGS = ['flow', 'totalIndex', 'pressure', 'level', 'ph', 'tds', 'no3', 'nh4'];
+
+    // 🟢 ĐÃ CẬP NHẬT: Từ điển ngôn ngữ đồng bộ hóa chữ thường
+    const TAG_LABELS = {
+        'amino': 'Amoni',
+        'flow': 'Lưu lượng',
+        'level': 'Mực nước',
+        'nh4': 'Amoni',
+        'nitrat': 'Nitrat',
+        'no3': 'Nitrat',
+        'ph': 'Độ pH',
+        'tds': 'TDS',
+        'totalindex': 'TổngLL'
+    };
 
     const DB_TAG_NORMALIZE = {
         'flow': 'flow',
@@ -173,7 +185,7 @@
     async function executeQuery() {
         const groupType = document.getElementById('filterGroupType').value;
         const selectedStation = document.getElementById('filterStationId').value;
-        const selectedTagFilter = document.getElementById('filterTagSelect').value; // 🟢 Lấy giá trị bộ lọc Tag mới
+        const selectedTagFilter = document.getElementById('filterTagSelect').value; 
         const startTime = document.getElementById('filterStartTime').value.replace('T', ' ') + ':00';
         const endTime = document.getElementById('filterEndTime').value.replace('T', ' ') + ':00';
         const intervalMins = document.getElementById('filterInterval').value;
@@ -204,8 +216,6 @@
             return;
         }
 
-        // 🟢 CẢI TIẾN: Xác định tập hợp các tag cần quét từ DB dựa theo Bộ lọc Tag
-        // Nếu chọn một tag cụ thể, ta chỉ tìm các khóa DB tương ứng ánh xạ về tag đó để tiết kiệm tài nguyên mạng
         let dbTagsToQuery = [];
         if (selectedTagFilter === 'ALL') {
             dbTagsToQuery = Object.keys(DB_TAG_NORMALIZE);
@@ -213,7 +223,6 @@
             dbTagsToQuery = Object.keys(DB_TAG_NORMALIZE).filter(dbKey => DB_TAG_NORMALIZE[dbKey] === selectedTagFilter);
         }
 
-        // Xác định các tag đích hiển thị ngang
         const targetDisplayTags = selectedTagFilter === 'ALL' ? ALL_TAGS : [selectedTagFilter];
 
         try {
@@ -256,7 +265,6 @@
                 }
             });
 
-            // Lọc danh sách trạm thực sự có dữ liệu của những tag đang chọn
             const activeStations = candidates.filter(st => {
                 return targetDisplayTags.some(tag => activeCellKeys.has(`${st.id}_${tag}`));
             });
@@ -280,7 +288,11 @@
                 
                 headRow1 += '<th colspan="' + validTagsForThisStation.length + '" style="padding:8px; border:1px solid #cbd5e1; background:#f1f5f9; color:#1e293b; font-weight:700;">' + st.name + '</th>';
                 validTagsForThisStation.forEach(tag => {
-                    headRow2 += '<th style="padding:6px; border:1px solid #cbd5e1; background:#fff; font-size:0.75rem; color:#475569; font-weight:600;">' + tag + '</th>';
+                    // 🟢 CẢI TIẾN: Biên dịch nhãn cột tầng 2 sang Tiếng Việt bằng cách chuyển chữ thường tra cứu từ điển
+                    const cleanTagKey = tag.toLowerCase().trim();
+                    const friendlyLabel = TAG_LABELS[cleanTagKey] || tag;
+                    
+                    headRow2 += '<th style="padding:6px; border:1px solid #cbd5e1; background:#fff; font-size:0.75rem; color:#475569; font-weight:600;">' + friendlyLabel + '</th>';
                 });
             });
             headRow1 += '</tr>';
@@ -308,11 +320,13 @@
                         if (val !== undefined && val !== null) {
                             let textStyle = "color: #0284c7; font-weight: 600;";
                             
-                            if (tag === 'flow') textStyle = "color: #2563eb; font-weight: 700;";
-                            if (tag === 'pressure') textStyle = "color: #dc2626; font-weight: 600;";
-                            if (tag === 'ph') textStyle = "color: #059669; font-weight: 600;";
-                            if (tag === 'tds') textStyle = "color: #b45309; font-weight: 600;";
-                            if (tag === 'no3' || tag === 'nh4') textStyle = "color: #7c3aed; font-weight: 600;";
+                            // 🟢 ĐỒNG BỘ: So khớp màu sắc chữ dựa theo mã tag gốc của hệ thống
+                            const lowerTag = tag.toLowerCase().trim();
+                            if (lowerTag === 'flow') textStyle = "color: #2563eb; font-weight: 700;";
+                            if (lowerTag === 'pressure') textStyle = "color: #dc2626; font-weight: 600;";
+                            if (lowerTag === 'ph') textStyle = "color: #059669; font-weight: 600;";
+                            if (lowerTag === 'tds') textStyle = "color: #b45309; font-weight: 600;";
+                            if (lowerTag === 'no3' || lowerTag === 'nh4') textStyle = "color: #7c3aed; font-weight: 600;";
 
                             bodyHtml += '<td style="padding:8px 6px; border-right:1px solid #e2e8f0; ' + textStyle + '">' + parseFloat(val.toFixed(2)).toLocaleString('vi-VN') + '</td>';
                         } else {

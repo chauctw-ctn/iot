@@ -80,14 +80,14 @@
     .leaflet-popup-content { width: 330px !important; margin: 10px 12px !important; }
 </style>
 
-<script>
+<script>  
 (() => {
     let mapChartInstance = null; 
+    let currentSelectedTagMap = {}; // Lưu tag đang xem của từng trạm để không bị reset khi render ngầm
 
-    // Bộ cấu hình quy đổi tên hiển thị đẹp cho nhãn đồ thị dựa trên các tag thực tế quét được từ DB
     const TAG_LABELS = {
         'flow': 'Lưu lượng (m³/h)',
-        'totalIndex': 'Chỉ số tổng (m³)',
+        'totalindex': 'TổngLL (m³)',
         'pressure': 'Áp lực (bar)',
         'level': 'Mực nước (m)',
         'ph': 'Độ pH',
@@ -141,8 +141,8 @@
         const onlineIcon = L.icon({ iconUrl: '/images/PS_GR.gif', iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
         const offlineIcon = L.icon({ iconUrl: '/images/DIS.gif', iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
 
-        // 🟢 CẬP NHẬT: Hàm đọc API và vẽ đồ thị chuẩn hóa chuỗi thời gian gửi về DB
         window.loadPopupChartByTag = async (stationId, targetTag) => {
+            currentSelectedTagMap[stationId] = targetTag; // Lưu cấu hình tag được lựa chọn ngầm
             const canvasId = 'popupChart_' + stationId;
             const ctx = document.getElementById(canvasId);
             if (!ctx) return;
@@ -150,16 +150,9 @@
             const now = new Date();
             const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             
-            // Hàm chuyển đổi nội bộ sang định dạng 'YYYY-MM-DD HH:mm:ss' tránh lệch múi giờ trên Cloud Supabase
             const formatSQLDateTime = (date) => {
                 const pad = (v) => String(v).padStart(2, "0");
-                const yyyy = date.getFullYear();
-                const mm = pad(date.getMonth() + 1);
-                const dd = pad(date.getDate());
-                const hh = pad(date.getHours());
-                const min = pad(date.getMinutes());
-                const ss = pad(date.getSeconds());
-                return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+                return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
             };
 
             const startTimeStr = formatSQLDateTime(past24h);
@@ -167,21 +160,10 @@
 
             try {
                 const url = `/api/overview/history-chart?station_id=${encodeURIComponent(stationId)}&tag_key=${encodeURIComponent(targetTag)}&start_time=${encodeURIComponent(startTimeStr)}&end_time=${encodeURIComponent(endTimeStr)}&interval_mins=30`;
-                
-                // Log để bạn kiểm tra trực tiếp đường dẫn trong F12 Console xem có chạy đúng không
-                console.log(`📡 [POPUP_CHART] Đang gọi API: ${url}`);
-                
                 const res = await fetch(url);
                 const result = await res.json();
 
                 if (result.success && Array.isArray(result.data)) {
-                    console.log(`📥 [POPUP_CHART] Nhận được ${result.data.length} điểm dữ liệu từ DB.`);
-                    
-                    if (result.data.length === 0) {
-                        // Nếu mảng trống, hiển thị cảnh báo tạm thời lên Console
-                        console.warn(`⚠️ Trạm ${stationId} với tag ${targetTag} không có dữ liệu lịch sử trong 24h qua.`);
-                    }
-
                     const labels = result.data.map(item => new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
                     const values = result.data.map(item => item.value);
 
@@ -194,7 +176,8 @@
                     if (targetTag === 'ph') { lineColor = '#059669'; bgColor = 'rgba(5, 150, 105, 0.05)'; }
                     if (targetTag === 'tds') { lineColor = '#b45309'; bgColor = 'rgba(180, 83, 9, 0.05)'; }
 
-                    const labelText = TAG_LABELS[targetTag] || `Thông số ${targetTag}`;
+                    const normalizedKeyForLabel = targetTag.toLowerCase().trim();
+                    const labelText = TAG_LABELS[normalizedKeyForLabel] || `Thông số ${targetTag}`;
 
                     mapChartInstance = new Chart(ctx, {
                         type: 'line',
@@ -216,29 +199,24 @@
                             maintainAspectRatio: false,
                             scales: {
                                 x: { grid: { display: false }, ticks: { font: { size: 9 }, maxTicksLimit: 6 } },
-                                y: { beginAtZero: false, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } } } // beginAtZero: false giúp đường line biến động rõ nét hơn
+                                y: { beginAtZero: false, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } } }
                             },
                             plugins: { legend: { display: false } }
                         }
                     });
-                } else {
-                    console.error("❌ API trả về trạng thái thất bại:", result.error);
                 }
             } catch (err) {
-                console.error("❌ Lỗi kết nối hoặc xử lý dữ liệu từ API Server:", err);
+                console.error("❌ Lỗi tải đồ thị popup:", err);
             }
         };
 
-        // Lắng nghe mở popup: Tìm tag mặc định để vẽ đồ thị mồi lần đầu
         map.on('popupopen', (e) => {
             const sourceMarker = e.popup._source;
             if (!sourceMarker || !sourceMarker.options.stationId) return;
             
             activePopupStationId = sourceMarker.options.stationId;
             const tagSelect = document.getElementById('popupTagSelector_' + activePopupStationId);
-            
             if (tagSelect) {
-                // Tự động kích hoạt vẽ đồ thị theo tag mặc định đang hiển thị trong select box
                 window.loadPopupChartByTag(activePopupStationId, tagSelect.value);
             }
         });
@@ -251,7 +229,7 @@
             }
         });
 
-        async function fetchMapData() {
+        async function fetchMapData(shouldZoom = false) {
             try {
                 const res = await fetch('/api/overview/latest');
                 const json = await res.json();
@@ -259,7 +237,7 @@
                 rawStationsData = json.data;
                 
                 buildGroupFilter(rawStationsData);
-                renderMarkers();
+                renderMarkers(shouldZoom);
             } catch (err) {
                 console.error("Lỗi API Bản đồ:", err.message);
             }
@@ -289,7 +267,7 @@
             groupSelect.value = currentSelectedValue;
         }
 
-        function renderMarkers() {
+        function renderMarkers(shouldZoom = false) {
             markersLayer.clearLayers();
             const selectedStatus = document.getElementById("filterStatus").value;
             const selectedGroup = document.getElementById("filterGroup").value;
@@ -318,35 +296,56 @@
                     zIndexOffset: isOnline ? 10 : 99999 
                 });
 
-                // Dựng bảng chỉ số tức thời & Đóng gói danh sách Option cho Bộ lọc Tag động
                 let tagsHtml = "";
                 let selectOptionsHtml = "";
                 
                 if (st.tags && Object.keys(st.tags).length > 0) {
+                    const savedTag = currentSelectedTagMap[st.logger_id];
+                    
                     Object.keys(st.tags).forEach((tagKey, idx) => {
                         const tagData = st.tags[tagKey];
-                        tagsHtml += `<tr><td><b>${tagKey}</b></td><td style="color:#0284c7; font-weight:600; text-align:right;">${tagData.value}</td></tr>`;
                         
-                        // Chuẩn hóa tên viết hoa/viết thường để đồng bộ map lựa chọn
-                        let normalizedValue = tagKey;
-                        if (tagKey.toLowerCase() === 'ph') normalizedValue = 'ph';
-                        if (tagKey.toLowerCase() === 'tds') normalizedValue = 'tds';
+                        // Chuyển key thô (ví dụ: totalIndex) thành chữ thường hoàn toàn (totalindex)
+                        const cleanKey = tagKey.toLowerCase().trim();
                         
-                        // Thiết lập tag mặc định ưu tiên cho 'flow', nếu không có thì lấy tag đầu tiên
-                        const isSelected = (tagKey === 'flow' || (!st.tags['flow'] && idx === 0)) ? 'selected' : '';
-                        selectOptionsHtml += `<option value="${normalizedValue}" ${isSelected}>${tagKey.toUpperCase()}</option>`;
+                        // Tra cứu trong từ điển (bây giờ từ điển đã có key 'totalindex' viết thường)
+                        const friendlyTagName = TAG_LABELS[cleanKey] || tagKey;
+
+                        let valueStyle = "color:#0284c7; font-weight:600; text-align:right;";
+                        if (tagData.threshold_enabled && tagData.value !== null) {
+                            const val = parseFloat(tagData.value);
+                            if ((tagData.min_value !== null && val < parseFloat(tagData.min_value)) || 
+                                (tagData.max_value !== null && val > parseFloat(tagData.max_value))) {
+                                valueStyle = "color:#dc2626; font-weight:700; text-align:right; background:#fef2f2; border-radius:3px; padding:0 3px;";
+                            }
+                        }
+
+                        // Đẩy hàng số liệu vào bảng (totalindex lúc này sẽ hiển thị là "Tổng chỉ số")
+                        tagsHtml += `<tr><td><b>${friendlyTagName}</b></td><td style="${valueStyle}">${tagData.value}</td></tr>`;
+                        
+                        // Nếu là totalindex thì không cho xuất hiện ở Dropdown đồ thị phía dưới
+                        if (cleanKey === 'totalindex') {
+                            return; 
+                        }
+
+                        const isSelected = savedTag ? (cleanKey === savedTag ? 'selected' : '') : (cleanKey === 'flow' || (!st.tags['flow'] && idx === 0) ? 'selected' : '');
+                        selectOptionsHtml += `<option value="${cleanKey}" ${isSelected}>${friendlyTagName.toUpperCase()}</option>`;
                     });
-                } else {
-                    tagsHtml = `<tr><td colspan="2" style="text-align:center; color:#94a3b8">Không có thông số đo</td></tr>`;
-                    selectOptionsHtml = `<option value="flow">FLOW</option>`;
+                }
+
+                // --- XỬ LÝ FORMAT THỜI GIAN ĐO ĐẠC (DATA_TS) ---
+                let stationDataTsStr = 'N/A';
+                if (st.data_ts) {
+                    const dObj = new Date(st.data_ts);
+                    stationDataTsStr = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')} ${String(dObj.getHours()).padStart(2, '0')}:${String(dObj.getMinutes()).padStart(2, '0')}:${String(dObj.getSeconds()).padStart(2, '0')}`;
                 }
 
                 marker.bindPopup(`
                     <div style="width: 100%;">
                         <h4 style="margin:0 0 5px 0; color: #1e293b; font-size: 0.9rem;">${st.display_name || st.logger_id}</h4>
                         <div style="margin-bottom: 6px;">
-                            <span style="font-size:0.7rem; padding:1px 5px; border-radius:10px; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#15803d':'#b91c1c'}; font-weight:600;">
-                                ${isOnline ? '● Trực tuyến' : '● Mất kết nối'}
+                            <span style="font-size:0.7rem; padding:2px 6px; border-radius:10px; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#15803d':'#b91c1c'}; font-weight:600; display: inline-block;">
+                                ${isOnline ? '● Trực tuyến' : '● Mất kết nối'}. Thời gian: ${stationDataTsStr}
                             </span>
                         </div>
                         
@@ -387,26 +386,32 @@
             document.getElementById("statOnline").innerText = online;
             document.getElementById("statOffline").innerText = offline;
 
-            if (markerToReopen) {
+            // Đóng gói giữ trạng thái mở của Popup mà không kích hoạt chuỗi sự kiện đóng để giữ đồ thị cũ
+            if (markerToReopen && !map.hasLayer(markerToReopen.getPopup())) {
                 markerToReopen.openPopup();
             }
 
-            if (bounds.length > 0 && map && selectedStatus === "all" && selectedGroup === "all" && !activePopupStationId) {
-                map.fitBounds(bounds, { padding: [40, 40] });
+            // 🟢 TỰ ĐỘNG ZOOM: Kích hoạt fitBounds khi thay đổi bộ lọc hoặc khởi tạo lần đầu
+            if (bounds.length > 0 && (shouldZoom || (!activePopupStationId && selectedStatus === "all" && selectedGroup === "all"))) {
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
             }
         }
 
         function onFilterChange() {
-            activePopupStationId = null;
-            renderMarkers();
+            // Không gán activePopupStationId = null để giữ liên kết popup khi render lại ngầm
+            renderMarkers(true); // Truyền true để kích hoạt tính toán auto zoom theo bộ lọc mới
         }
 
         document.getElementById("filterStatus").addEventListener("change", onFilterChange);
         document.getElementById("filterGroup").addEventListener("change", onFilterChange);
         
-        fetchMapData();
+        // Khởi tạo lần đầu tiên và kích hoạt zoom
+        fetchMapData(true);
 
-        const mapInterval = setInterval(fetchMapData, 30000);
+        const mapInterval = setInterval(() => {
+            fetchMapData(false); // Chu kỳ tự động cập nhật ngầm không làm giật bản đồ (shouldZoom = false)
+        }, 30000);
+        
         const observer = new MutationObserver(() => {
             if (!document.getElementById("map")) {
                 clearInterval(mapInterval); observer.disconnect();

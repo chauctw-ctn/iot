@@ -72,6 +72,58 @@
             margin-bottom: 5px;
         }
         
+        /* 🟢 CẤU TRÚC KHỐI CHẤT LƯỢNG NƯỚC MỚI BỔ SUNG */
+        .quality-water-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .water-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 4px solid #14b8a6;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .water-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 4px;
+        }
+        .water-station-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .water-station-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .water-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .water-tag-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .water-tag-val {
+            font-weight: 700;
+            color: #0d9488;
+        }
+
         .card {
             background: #fff;
             border-radius: 8px;
@@ -87,7 +139,7 @@
         .card-title {
             width: 100%;
             font-size: 0.95rem;
-            font-weight: 600;
+            font-weight: 700;
             color: #333;
             margin-top: 0;
             margin-bottom: 10px;
@@ -97,6 +149,12 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            /* 🛠️ BỔ SUNG ĐỂ CANH GIỮA HOÀN HẢO */
+            display: flex;
+            justify-content: center;  /* Căn giữa theo chiều ngang */
+            align-items: center;      /* Căn giữa theo chiều dọc */
+            gap: 8px;                 /* Tạo khoảng cách đều giữa Icon và Chữ */
+            text-align: center;
         }
         .gauge-host {
             display: flex;
@@ -109,7 +167,6 @@
             max-width: 100% !important;
         }
         
-        /* 🟢 ĐÃ FIX: Thay đổi grid-template-columns từ 2fr 1fr sang 1fr 1fr để chia đôi 50/50 */
         .main-content-grid {
             display: grid;
             grid-template-columns: 1fr 1fr; 
@@ -168,14 +225,78 @@
         }
         .refresh-btn:hover { background: #1d4ed8; }
 
-        @media (max-width: 1100px) {
-            .grid-kpi { flex-wrap: wrap; }
-            .card { flex: 1 1 calc(33.33% - 12px); }
+        /* Style màu sắc cho nhãn chỉ số đếm cảnh báo trên tiêu đề */
+        #lblOfflineSummary { color: #dc2626; }
+        #lblViolationSummary { color: #d97706; }
+
+    /* ==================================================================== */
+    /* CẤU HÌNH RESPONSIVE CHO DI ĐỘNG & TABLET */
+    /* ==================================================================== */
+    @media (max-width: 1200px) {
+        .grid-kpi {
+            grid-template-columns: repeat(3, 1fr);
         }
-        @media (max-width: 768px) {
-            .card { flex: 1 1 calc(50% - 12px); }
-            .main-content-grid { grid-template-columns: 1fr !important; }
+        .quality-water-panel {
+            grid-template-columns: 1fr;
         }
+    }
+
+    @media (max-width: 768px) {
+        .overview-container {
+            padding: 4px;
+            height: auto; 
+            overflow-y: auto;
+        }
+        
+        .header-panel {
+            padding: 8px;
+            flex-direction: column; 
+            align-items: stretch;
+            text-align: center;
+        }
+        
+        .header-panel h2 {
+            font-size: 1.1rem;
+            text-align: center;
+            width: 100%;
+        }
+
+        .tab-bar-container {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .tab-btn {
+            flex: 1; 
+            padding: 6px 4px;
+            font-size: 0.75rem;
+        }
+
+        .refresh-btn {
+            width: 100%; 
+            padding: 8px;
+        }
+        
+        .grid-kpi {
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 6px;
+        }
+        
+        .main-content-grid {
+            grid-template-columns: 1fr !important; 
+            gap: 8px;
+        }
+
+        .main-content-grid .card {
+            min-height: 280px; 
+            padding: 10px;
+        }
+        
+        .station-table th:nth-child(2), 
+        .station-table td:nth-child(2) {
+            display: none; 
+        }
+    }
     </style>
 </head>
 <body>
@@ -187,10 +308,10 @@
             
             <div class="tab-bar-container">
                 <button class="tab-btn" id="tabMonreBtn">
-                    <i class="fa-solid fa-file-invoice"></i> Cấu hình MONRE
+                    </i>DỮ LIỆU BỘ TÀI NGUYÊN
                 </button>
                 <button class="tab-btn active" id="tabRealtimeBtn">
-                    <i class="fa-solid fa-bolt"></i> Cấu hình REALTIME
+                    </i>DỮ LIỆU WEB
                 </button>
             </div>
         </div>
@@ -200,6 +321,12 @@
     </div>
 
     <div class="grid-kpi" id="dynamicGaugeWrapper"></div>
+
+    <div class="quality-water-panel" id="qualityWaterWrapper">
+        <div class="water-card" style="border-left-color: #cbd5e1;"><div style="color: #64748b; font-size: 0.8rem; font-style: italic;">Đang kiểm tra chất lượng nước...</div></div>
+        <div class="water-card" style="border-left-color: #cbd5e1;"><div style="color: #64748b; font-size: 0.8rem; font-style: italic;">Đang kiểm tra chất lượng nước...</div></div>
+        <div class="water-card" style="border-left-color: #cbd5e1;"><div style="color: #64748b; font-size: 0.8rem; font-style: italic;">Đang kiểm tra chất lượng nước...</div></div>
+    </div>
 
     <div class="main-content-grid">
         <div class="card" style="align-items: stretch; width: 100%;">
@@ -212,30 +339,44 @@
         </div>
 
         <div class="card" style="align-items: stretch;">
-            <div class="card-title" style="color: #dc2626;"><i class="fa-solid fa-circle-exclamation" style="margin-right: 6px;"></i>DANH SÁCH CẢNH BÁO</div>
+            <div class="card-title" style="color: #334155;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626; margin-right: 6px;"></i>DANH SÁCH CẢNH BÁO: Mất kết nối (<span id="lblOfflineSummary">00</span>/<span class="lbl-total-summary">00</span>) - Vi phạm: (<span id="lblViolationSummary">00</span>/<span class="lbl-total-summary">00</span>)
+            </div>
             <div class="table-responsive">
                 <table class="station-table">
-                    <thead>
-                        <tr>
-                            <th>Tên Trạm</th>
-                            <th>Thời Gian Truyền</th>
-                            <th>Thời Gian Chậm Truyền</th>
-                            <th>Trạng Thái</th>
-                        </tr>
-                    </thead>
-                    <tbody id="offlineTableBody">
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: #64748b; font-style: italic;">Đang đồng bộ trạng thái kết nối...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Tên Trạm</th>
+                        <th style="text-align: center;">Thời Gian</th>
+                        <th style="text-align: center;">Tên Tag</th>
+                        <th style="text-align: center;">Chi Tiết Lỗi</th>
+                        <th style="text-align: center;">Trạng Thái</th>
+                    </tr>
+                </thead>
+                <tbody id="offlineTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #64748b; font-style: italic;">Đang đồng bộ dữ liệu giám sát...</td>
+                    </tr>
+                </tbody>
+            </table>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+// Sử dụng khối kiểm tra tránh lỗi trùng lặp định nghĩa biến khi nạp lại trang qua AJAX
+if (typeof OVERVIEW_MODULE_INITIALIZED === 'undefined') {
+    var OVERVIEW_MODULE_INITIALIZED = true;
+}
+
 (() => {
+    const TAG_LABELS_LOCAL = {
+        'amino': 'Amino', 'flow': 'Lưu lượng', 'level': 'Mực nước', 'nh4': 'Amoni',
+        'nitrat': 'Nitrat', 'no3': 'Nitrat', 'ph': 'Độ pH', 'tds': 'TDS', 'totalindex': 'TổngLL',
+        'scada_tb24': 'CHẤT LƯƠNG NƯỚC TRẠM BƠM SỐ 24', 'scada_gs5nm1': 'CHẤT LƯƠNG NƯỚC GS5NM1', 'scada_gs4nm2': 'CHẤT LƯƠNG NƯỚC GS4NM2'
+    };    
+
     const GAUGE_CONFIGS = [
         { id: "gauge1", title: "TOTAL", color: "#2563eb", max: 2000, stationIds: "monre_35_clnqt4,monre_35_g1,monre_35_g12,monre_35_g15,monre_35_g18,monre_35_g2,monre_35_g20,monre_35_g22,monre_35_g23,monre_35_g24,monre_35_g25,monre_35_g27,monre_35_g4,monre_35_qt3,monre_35_qt4,monre_35_qt5,monre_36_clngs4nm2,monre_36_gs1nm2,monre_36_gs2nm2,monre_36_gs3nm2,monre_36_gs4nm2,monre_36_qt1nm2,monre_36_qt2nm2,monre_391_g21,monre_391_g26,monre_391_qt2m,monre_393_clngs5nm1,monre_393_gs1nm1,monre_393_gs2nm1,monre_393_gs3nm1,monre_393_gs4nm1,monre_393_gs5nm1,monre_393_qt1nm1,monre_393_qt2nm1" },
         { id: "gauge2", title: "GP35", color: "#10b981", max: 2000, stationIds: "monre_35_clnqt4,monre_35_g1,monre_35_g12,monre_35_g15,monre_35_g18,monre_35_g2,monre_35_g20,monre_35_g22,monre_35_g23,monre_35_g24,monre_35_g25,monre_35_g27,monre_35_g4,monre_35_qt3,monre_35_qt4,monre_35_qt5" },
@@ -260,22 +401,25 @@
     let gaugeInstances = {};
     let hChart = null;
 
-    async function initModule() {
+    const TARGET_WATER_STATIONS = ["scada_tb24", "scada_gs5nm1", "scada_gs4nm2"];
+
+    function initModule() {
         const wrapper = document.getElementById('dynamicGaugeWrapper');
-        if (wrapper) {
-            wrapper.innerHTML = "";
-            GAUGE_CONFIGS.forEach(cfg => {
-                const cardHtml = `
-                    <div class="card">                        
-                        <div id="${cfg.id}Container" class="gauge-host"></div>
-                    </div>
-                `;
-                wrapper.insertAdjacentHTML('beforeend', cardHtml);
-            });
-        }
+        if (!wrapper) return; // Nếu cấu trúc HTML chưa sẵn sàng, thoát ra để tránh lỗi crash script
+        
+        wrapper.innerHTML = "";
+        GAUGE_CONFIGS.forEach(cfg => {
+            const cardHtml = `
+                <div class="card">                        
+                    <div id="${cfg.id}Container" class="gauge-host"></div>
+                </div>
+            `;
+            wrapper.insertAdjacentHTML('beforeend', cardHtml);
+        });
 
         try {
             if (typeof ScadaGauge !== 'undefined') {
+                gaugeInstances = {}; // Reset cấu trúc instance tránh lưu cache rác
                 GAUGE_CONFIGS.forEach(cfg => {
                     gaugeInstances[cfg.id] = new ScadaGauge(`${cfg.id}Container`, {
                         min: 0, max: cfg.max, value: 0,
@@ -310,6 +454,10 @@
         const canvasChart = document.getElementById('kpiHistoryChart');
         if (canvasChart) {
             const ctx = canvasChart.getContext('2d');
+            // Xóa biểu đồ cũ tồn dư trong biến toàn cục nếu có để tránh lỗi đè canvas
+            if (window.myGlobalKpiChart) {
+                window.myGlobalKpiChart.destroy();
+            }
             hChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -339,10 +487,11 @@
                     }
                 }
             });
+            window.myGlobalKpiChart = hChart; // Lưu tham chiếu biểu đồ
         }
 
         setupTabEvents();
-        fetchDataOverview();
+        fetchDataOverview(); // Thực thi gọi nạp dữ liệu lập tức ngay khi vẽ xong UI
     }
 
     function setupTabEvents() {
@@ -369,9 +518,11 @@
     }
 
     async function fetchDataOverview() {
+        // Bảo vệ hệ thống: Nếu các thẻ HTML chính đã bị xóa (chuyển sang trang khác), dừng thực thi hàm
+        if (!document.getElementById('offlineTableBody')) return;
+
         try {
             const activeConfigs = (currentActiveTab === 'MONRE') ? GAUGE_CONFIGS : GAUGE_CONFIGS_REALTIME;
-
             const fetchPromises = activeConfigs.map(cfg => 
                 fetch(`/api/kpi/flow-summary?station_ids=${cfg.stationIds}&tag_key=flow&interval_mins=30`).then(res => res.json())
             );
@@ -393,7 +544,10 @@
                         );
                     }
                     if (hChart && hChart.data.datasets[index] && Array.isArray(data.chart_data)) {
-                        hChart.data.datasets[index].label = cfg.title;
+                        const currentTagKey = (cfg.tag_key || 'flow').toLowerCase().trim(); 
+                        const friendlyTagName = TAG_LABELS_LOCAL[currentTagKey] || cfg.title;
+
+                        hChart.data.datasets[index].label = `${cfg.title} (${friendlyTagName})`;
                         hChart.data.datasets[index].data = data.chart_data.map(item => item.value);
                     }
                 }
@@ -407,53 +561,192 @@
             const resOverview = await fetch('/api/overview/latest');
             const overviewResult = await resOverview.json();
             const tableBody = document.getElementById('offlineTableBody');
+            const waterWrapper = document.getElementById('qualityWaterWrapper');
             
-            if (overviewResult.success && Array.isArray(overviewResult.data) && tableBody) {
-                tableBody.innerHTML = '';
-                let offlineCount = 0;
-
-                overviewResult.data.forEach(st => {
-                    const dbStatus = st.last_known_status ? String(st.last_known_status).toLowerCase().trim() : "offline";
-                    const isOnline = (dbStatus === 'online' || dbStatus === '1' || dbStatus === 'true');
-
-                    if (!isOnline) {
-                        offlineCount++;
-
-                        const stationName = st.display_name || st.logger_id;
-
-                        let transmissionTime = 'N/A';
-                        if (st.data_ts) {
-                            const dateObj = new Date(st.data_ts);
-                            const year = dateObj.getFullYear();
-                            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                            const day = String(dateObj.getDate()).padStart(2, '0');
-                            const hours = String(dateObj.getHours()).padStart(2, '0');
-                            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                            const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+            if (overviewResult.success && Array.isArray(overviewResult.data)) {
+                if (waterWrapper) {
+                    waterWrapper.innerHTML = '';
+                    TARGET_WATER_STATIONS.forEach(targetId => {
+                        const stationData = overviewResult.data.find(d => String(d.logger_id).toLowerCase().trim() === targetId.toLowerCase().trim());
+                        
+                        if (stationData) {
+                            const cleanStationKey = String(stationData.logger_id).toLowerCase().trim();
+                            const name = TAG_LABELS_LOCAL[cleanStationKey] || stationData.display_name || stationData.logger_id;
+                            const dbStatus = stationData.last_known_status ? String(stationData.last_known_status).toLowerCase().trim() : "offline";
+                            const isOnline = (dbStatus === 'online' || dbStatus === '1' || dbStatus === 'true');
                             
-                            transmissionTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                            let tagsMarkup = '';
+                            let cardBorderColor = isOnline ? '#14b8a6' : '#ef4444';
+                            
+                            if (stationData.tags && typeof stationData.tags === 'object') {
+                                Object.keys(stationData.tags).forEach(tagKey => {
+                                    const cleanKey = tagKey.toLowerCase().trim();
+                                    if (cleanKey !== 'flow' && cleanKey !== 'totalindex') {
+                                        const label = TAG_LABELS_LOCAL[cleanKey] || tagKey.toUpperCase();
+                                        const tagInfo = stationData.tags[tagKey];
+                                        
+                                        let valStyle = '';
+                                        if (tagInfo.threshold_enabled && tagInfo.value !== null) {
+                                            const currentVal = parseFloat(tagInfo.value);
+                                            const maxVal = tagInfo.max_value !== null ? parseFloat(tagInfo.max_value) : null;
+                                            const minVal = tagInfo.min_value !== null ? parseFloat(tagInfo.min_value) : null;
+                                            if ((maxVal !== null && currentVal > maxVal) || (minVal !== null && currentVal < minVal)) {
+                                                valStyle = 'color: #ef4444; background: #fee2e2; padding: 0 4px; border-radius: 4px; font-weight: 800;';
+                                            }
+                                        }
+                                        
+                                        tagsMarkup += `
+                                            <div class="water-tag-item">
+                                                <span>${label}:</span>
+                                                <span class="water-tag-val" style="${valStyle}">${tagInfo.value ?? '-'}</span>
+                                            </div>
+                                        `;
+                                    }
+                                });
+                            }
+                            
+                            if (!tagsMarkup) {
+                                tagsMarkup = '<div style="color: #94a3b8; font-size: 0.75rem; font-style: italic;">Không có thông số đo chất lượng</div>';
+                            }
+
+                            const cardHtml = `
+                                <div class="water-card" style="border-left-color: ${cardBorderColor};">
+                                    <div class="water-card-header">
+                                        <span class="water-station-title"><i class="fa-solid fa-droplet" style="color: #06b6d4;"></i> ${name}</span>
+                                        <span class="water-station-status" style="color: ${isOnline ? '#10b981' : '#ef4444'};">
+                                            ${isOnline ? '● Online' : '● Mất kết nối'}
+                                        </span>
+                                    </div>
+                                    <div class="water-tags-container">
+                                        ${tagsMarkup}
+                                    </div>
+                                </div>
+                            `;
+                            waterWrapper.insertAdjacentHTML('beforeend', cardHtml);
+                        } else {
+                            waterWrapper.insertAdjacentHTML('beforeend', `
+                                <div class="water-card" style="border-left-color: #cbd5e1;">
+                                    <div class="water-card-header">
+                                        <span class="water-station-title" style="color: #94a3b8;"><i class="fa-solid fa-ban"></i> ${targetId.toUpperCase()}</span>
+                                        <span class="water-station-status" style="color: #94a3b8;">Không có dữ liệu</span>
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    });
+                }
+
+                if (tableBody) {
+                    tableBody.innerHTML = '';
+                    let totalGlobal = overviewResult.data.length;
+                    let offlineGlobalCount = 0;
+                    let violationGlobalCount = 0;
+                    let hasErrorsOnScreen = 0;
+
+                    overviewResult.data.forEach(st => {
+                        const stationName = st.display_name || st.logger_id;
+                        const loggerIdLower = String(st.logger_id).toLowerCase().trim();
+                        const isMonreStation = loggerIdLower.startsWith('monre_');
+
+                        const dbStatus = st.last_known_status ? String(st.last_known_status).toLowerCase().trim() : "offline";
+                        const isOnline = (dbStatus === 'online' || dbStatus === '1' || dbStatus === 'true');
+
+                        if (!isOnline) {
+                            offlineGlobalCount++;
+                            hasErrorsOnScreen++;
+
+                            let targetTs = isMonreStation ? st.data_ts : st.current_ts;
+                            let transmissionTime = 'N/A';
+                            
+                            if (targetTs) {
+                                const dateObj = new Date(targetTs);
+                                transmissionTime = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
+                            }
+
+                            let delayText = "N/A";
+                            if (st.current_ts && st.data_ts) {
+                                const delayMinutes = Math.floor((new Date(st.current_ts).getTime() - new Date(st.data_ts).getTime()) / 60000);
+                                delayText = delayMinutes > 0 ? `${delayMinutes} phút` : '0 phút';
+                            }
+
+                            const row = `
+                                <tr style="background: #fff5f5;">
+                                    <td style="text-align: left;"><strong>${stationName}</strong></td>
+                                    <td style="text-align: center;"><span style="color: #475569;">${transmissionTime}</span></td>
+                                    <td style="text-align: center; color: #94a3b8; font-style: italic;">- Mất kết nối -</td>
+                                    <td style="text-align: center;"><span style="color: #e11d48; font-weight: 500;">Trễ ${delayText}</span></td>
+                                    <td style="text-align: center;"><span class="badge-danger">🔴 Mất tín hiệu</span></td>
+                                </tr>
+                            `;
+                            tableBody.insertAdjacentHTML('beforeend', row);
                         }
 
-                        let delayText = "N/A";
-                        if (st.current_ts && st.data_ts) {
-                            const delayMinutes = Math.floor((new Date(st.current_ts).getTime() - new Date(st.data_ts).getTime()) / 60000);
-                            delayText = delayMinutes > 0 ? `${delayMinutes} phút` : '0 phút';
-                        }
+                        let stationHasViolation = false;
+                        if (st.tags && typeof st.tags === 'object') {
+                            Object.keys(st.tags).forEach(tagKey => {
+                                const tagInfo = st.tags[tagKey];
+                                
+                                if (tagInfo && tagInfo.threshold_enabled === true && tagInfo.value !== null) {
+                                    const currentVal = parseFloat(tagInfo.value);
+                                    const maxVal = tagInfo.max_value !== null ? parseFloat(tagInfo.max_value) : null;
+                                    const minVal = tagInfo.min_value !== null ? parseFloat(tagInfo.min_value) : null;
+                                    
+                                    let isBreached = false;
+                                    let breachDetail = "";
 
-                        const row = `
-                            <tr>
-                                <td><strong>${stationName}</strong></td>
-                                <td><span style="color: #475569;"><i class="fa-regular fa-clock"></i> ${transmissionTime}</span></td>
-                                <td><span style="color: #e11d48; font-weight: 500;"><i class="fa-solid fa-hourglass-half"></i> Trễ ${delayText}</span></td>
-                                <td><span class="badge-danger">🔴 Mất tín hiệu</span></td>
-                            </tr>
-                        `;
-                        tableBody.insertAdjacentHTML('beforeend', row);
+                                    if (maxVal !== null && currentVal > maxVal) {
+                                        isBreached = true;
+                                        breachDetail = ` > Max <b>${maxVal}</b>`;
+                                    } else if (minVal !== null && currentVal < minVal) {
+                                        isBreached = true;
+                                        breachDetail = ` < Min <b>${minVal}</b>`;
+                                    }
+
+                                    if (isBreached) {
+                                        stationHasViolation = true;
+                                        hasErrorsOnScreen++;
+
+                                        let tagTargetTs = isMonreStation ? tagInfo.data_ts : tagInfo.current_ts;
+                                        let tagDataTsStr = 'N/A';
+                                        
+                                        if (tagTargetTs) {
+                                            const dateObj = new Date(tagTargetTs);
+                                            tagDataTsStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
+                                        }
+
+                                        const cleanTagKey = tagKey.toLowerCase().trim();
+                                        const friendlyTagDisplay = TAG_LABELS_LOCAL[cleanTagKey] || tagKey.toUpperCase();
+
+                                        const rowBreach = `
+                                            <tr style="background: #fffbeb;">
+                                                <td style="text-align: left;"><span style="color: #b45309; font-weight: 600;">${stationName}</span></td>
+                                                <td style="text-align: center;"><span style="color: #475569;">${tagDataTsStr}</span></td>
+                                                <td style="text-align: center;"><span style="font-weight: 700; color: #2563eb;">${friendlyTagDisplay}</span></td>
+                                                <td style="text-align: center; color: #d97706;"><b>${currentVal}</b>${breachDetail}</td>
+                                                <td style="text-align: center;"><span class="badge-danger" style="background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a;">⚠️ Vi phạm ngưỡng</span></td>
+                                            </tr>
+                                        `;
+                                        tableBody.insertAdjacentHTML('beforeend', rowBreach);
+                                    }
+                                }
+                            });
+                        }
+                        if (stationHasViolation) {
+                            violationGlobalCount++;
+                        }
+                    });
+
+                    // Kiểm tra tồn tại trước khi điền dữ liệu tránh lỗi null tham chiếu
+                    if(document.getElementById("lblOfflineSummary")) document.getElementById("lblOfflineSummary").innerText = String(offlineGlobalCount).padStart(2, '0');
+                    if(document.getElementById("lblViolationSummary")) document.getElementById("lblViolationSummary").innerText = String(violationGlobalCount).padStart(2, '0');
+                    
+                    document.querySelectorAll(".lbl-total-summary").forEach(el => {
+                        el.innerText = String(totalGlobal).padStart(2, '0');
+                    });
+
+                    if (hasErrorsOnScreen === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #10b981; font-weight: 600; font-style: italic;">✅ Toàn bộ hệ thống trạm đều đang Online ổn định!</td></tr>`;
                     }
-                });
-
-                if (offlineCount === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #10b981; font-weight: 600; font-style: italic;">✅ Toàn bộ hệ thống trạm đều đang Online ổn định!</td></tr>`;
                 }
             }
         } catch (error) {
@@ -466,9 +759,14 @@
         btnRef.addEventListener('click', fetchDataOverview);
     }
 
-    setTimeout(initModule, 50);
+    // ⚡ GIẢI PHÁP VÀNG: Thay thế setTimeout cố định bằng bộ lắng nghe MutationObserver 
+    // Hoặc chạy ngay lập tức khi mã JS này được thực thi, do DOM đã được ghi đè từ luồng AJAX layout
+    initModule();
+
+    // Thiết lập vòng lặp làm mới 30 giây một lần
     const refreshIntervalId = setInterval(fetchDataOverview, 30000);
 
+    // Dọn dẹp tiến trình ngầm (clearInterval) một cách chủ động khi người dùng rời khỏi trang này
     const destObserver = new MutationObserver(() => {
         if (!document.getElementById("offlineTableBody")) {
             clearInterval(refreshIntervalId);

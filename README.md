@@ -82,3 +82,37 @@ Các trạm realtime không có dữ liệu lịch sử tương ứng:
 | mqtt_gtacvan  | GTACVAN          | 9.1634 | 105.2515 |
 | tva_tb16      | TRẠM BƠM 16      | 9.1812 | 105.0882 |
 +---------------+------------------+--------+----------+
+
+
+
+16/28 trạm có chỉ số total index
+
+
+fa-regular fa-clock
+
+
+
+{
+  "amino": "Amino",
+  "flow": "Lưu lượng",
+  "level": "Mực nước",
+  "nh4": "Amoni",
+  "nitrat": "Nitrat",
+  "no3": "Nitrat",
+  "ph": "Độ pH",
+  "pH": "Độ pH",
+  "tds": "TDS",
+  "TDS": "TDS",
+  "totalIndex": "TổngLL"
+}
+
+
+scada_tb24
+scada_gs5nm1
+scada_gs4nm2
+
+overview-container
+    header-panel
+    grid-kpi
+    quality_waber <----bổ sung hiển thị chất lượng nước các trạm scada_tb24, scada_gs5nm1, scada_gs4nm2
+    main-content-grid

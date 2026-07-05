@@ -4,6 +4,7 @@
 |   |-- kpi.controller.js
 |   |-- overview.controller.js
 |   |-- station.controller.js
+|   |-- user.controller.js
 |-- gateways
 |   |-- http_gateway.js
 |   |-- mqtt_gateway.js
@@ -20,6 +21,7 @@
 |   |   |-- overview.html
 |   |   |-- statistics.html
 |   |   |-- system-config.html
+|   |   |-- user-config.html
 |   |   |-- water-quality.html
 |   |-- shared
 |   |   |-- gauge.css
@@ -32,13 +34,15 @@
 |   |   |-- layout.js
 |   |   |-- nav.js
 |   |   |-- ws-client.js
-|   |-- index.html
+|   |-- .index.html
 |   |-- layout.html
+|   |-- login.html
 |-- routes
 |   |-- alert.route.js
 |   |-- kpi.route.js
 |   |-- overview.route.js
 |   |-- station.route.js
+|   |-- user.route.js
 |-- services
 |   |-- .gitignore
 |   |-- alert_engine.js
@@ -49,8 +53,10 @@
 |-- .env
 |-- app.js
 |-- get_attributes.js
+|-- hash.js
 |-- init.js
 |-- package-lock.json
 |-- package.json
 |-- README.md
+|-- schema.sql
 |-- structure.txt
