@@ -1,18 +1,22 @@
 /* --- RESET & BIẾN TOÀN CỤC --- */
 :root {
-    --bg-main: #f4f6f9;
-    --bg-sidebar: #1e293b;
-    --bg-sidebar-hover: #334155;
-    --bg-sidebar-active: #0ea5e9;
-    --text-light: #f4f6f9;
-    --text-muted: #94a3b8;
-    --text-dark: #1e293b;
-    --bg-card: #f4f6f9;
-    --border-color: #f4f6f9;
+    /* CẬP NHẬT THEO GAM MÀU TRONG ẢNH */
+    --bg-main: radial-gradient(circle at center, #14b8a6 0%, #0f172a 100%); /* Nền chuyển màu Teal sâu */
+    --bg-sidebar: rgba(255, 255, 255, 0.06);       /* Nền kính mờ bán trong suốt */
+    --bg-sidebar-hover: rgba(255, 255, 255, 0.1);  /* Hover kính mờ nhẹ */
+    /* --bg-sidebar-active: #ffffff;                  Nền trắng nổi bật cho mục active */
+    --text-light: #ffffff;                         /* Chữ trắng sáng rõ nét */
+    --text-muted: rgba(255, 255, 255, 0.7);        /* Chữ phụ màu trắng mờ thanh lịch */
+    --text-dark: #e5ff00;                          /* Chữ tối khi nằm trên nền active trắng */
+    --bg-card: rgba(255, 255, 255, 0.08);          /* Thẻ card kính mờ đồng bộ */
+    --border-color: rgba(255, 255, 255, 0.12);     /* Đường viền kính siêu mảnh */
+    
+    /* GIỮ NGUYÊN HOÀN TOÀN THÔNG SỐ CŨ */
     --header-height: 70px;
     --sidebar-width: 260px;
     --sidebar-collapsed-width: 70px;
     --transition-speed: 0.3s;
+    --border-radius: 0px;
 }
 
 * {
@@ -23,8 +27,8 @@
 }
 
 body {
-    background-color: var(--bg-main);
-    color: var(--text-dark);
+    background: var(--bg-main);
+    color: var(--text-light); /* Chuyển text mặc định sang sáng để nổi bật trên nền tối */
     overflow: hidden;
 }
 
@@ -38,13 +42,18 @@ body {
 /* --- THANH SIDEBAR --- */
 .sidebar {
     width: var(--sidebar-width);
-    background-color: var(--bg-sidebar);
+    background: var(--bg-sidebar);
     color: var(--text-light);
     display: flex;
     flex-direction: column;
     transition: width var(--transition-speed) ease;
     flex-shrink: 0;
     z-index: 100;
+    
+    /* Thêm hiệu ứng kính mờ đặc trưng từ ảnh */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border-color);
 }
 
 .sidebar-brand {
@@ -52,14 +61,14 @@ body {
     display: flex;
     align-items: center;
     padding: 0 20px;
-    border-bottom: 1px solid #2e3e56;
+    border-bottom: 1px solid var(--border-color);
     overflow: hidden;
     white-space: nowrap;
 }
 
 .brand-icon {
     font-size: 1.5rem;
-    color: var(--bg-sidebar-active);
+    color: #2dd4bf; /* Đổi sang màu xanh Teal sáng */
     margin-right: 15px;
     transition: margin var(--transition-speed);
 }
@@ -68,6 +77,7 @@ body {
     font-weight: 700;
     font-size: 1.2rem;
     letter-spacing: 1px;
+    color: var(--text-light);
 }
 
 .sidebar-menu {
@@ -103,13 +113,13 @@ body {
 
 .menu-item.active {
     background-color: var(--bg-sidebar-active);
-    color: var(--text-light);
-    border-left: 4px solid #ffffff;
+    color: var(--text-dark); /* Chữ màu tối trên nền trắng như ảnh mẫu */
+    border-left: 4px solid #14b8a6; /* Vệt màu chuyển sang màu Teal chủ đạo */
 }
 
 .sidebar-footer {
     padding: 15px 20px;
-    border-top: 1px solid #2e3e56;
+    border-top: 1px solid var(--border-color);
     font-size: 0.85rem;
     color: var(--text-muted);
     display: flex;
@@ -139,18 +149,20 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0; /* Tránh lỗi vỡ layout khi chứa biểu đồ rộng */
+    min-width: 0; 
 }
 
 /* HEADER */
 .main-header {
     height: var(--header-height);
-    background-color: var(--bg-card);
+    background: var(--bg-sidebar); /* Đồng bộ kính mờ với sidebar */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 25px;
+    padding: 0 5px;
 }
 
 .header-left, .header-right {
@@ -164,28 +176,29 @@ body {
     border: none;
     font-size: 1.25rem;
     cursor: pointer;
-    color: var(--text-dark);
+    color: var(--text-light);
     padding: 5px 10px;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     transition: background 0.2s;
 }
 
 .toggle-sidebar-btn:hover {
-    background-color: var(--bg-main);
+    background-color: var(--bg-sidebar-hover);
 }
 
 .page-title {
     font-size: 1.25rem;
     font-weight: 600;
+    color: var(--text-light);
 }
 
 .system-timezone {
     font-size: 0.9rem;
-    background-color: #f0fdf4;
-    color: #166534;
+    background-color: rgba(20, 184, 166, 0.15); /* Chuyển sang tone xanh trong suốt */
+    color: #2dd4bf;
     padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid #bbf7d0;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(20, 184, 166, 0.3);
 }
 
 .user-profile {
@@ -194,27 +207,25 @@ body {
     gap: 10px;
     font-size: 0.95rem;
     font-weight: 500;
+    color: var(--text-light);
 }
 
 .avatar {
     width: 35px;
     height: 35px;
-    background-color: #e0f2fe;
-    color: #0369a1;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-light);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* VÙNG CHỨA NỘI DUNG CHÍNH ĐỘNG (SCROLL ĐỘC LẬP) */
 /* --- VÙNG CHỨA NỘI DUNG CHÍNH (ĐÃ CẬP NHẬT) --- */
 .main-content {
     flex: 1;
-    padding: 0px;            /* Khoảng cách đệm xung quanh nội dung chính */
-    overflow-y: auto;         /* Tự động xuất hiện thanh cuộn dọc nếu nội dung quá dài */
-    
-    /* Kích hoạt Flexbox để ép các thẻ con trực tiếp bên trong kéo giãn hết cỡ */
+    padding: 0px;            
+    overflow-y: auto;         
     display: flex;
     flex-direction: column;
 }
@@ -223,30 +234,27 @@ body {
 .placeholder-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: var(--border-radius);
     padding: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    
-    /* Quyết định: Chiếm 100% chiều cao và chiều rộng còn lại trong .main-content */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
     flex: 1;
     width: 100%;
-    
-    /* Căn giữa nội dung chữ/icon vào chính giữa màn hình lớn */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
-/* Chỉnh lại khoảng cách cho text bên trong card */
 .placeholder-card h3 {
     margin-bottom: 15px;
-    color: #0284c7;
-    font-size: 1.6rem;         /* Tăng kích thước chữ tiêu đề cho cân xứng */
+    color: #2dd4bf; /* Đổi tiêu đề sang Teal sáng */
+    font-size: 1.6rem;         
 }
 
 .placeholder-card p {
-    color: #64748b;
+    color: var(--text-muted);
     max-width: 600px;
     margin: 0 auto;
     line-height: 1.6;
@@ -258,15 +266,17 @@ body {
 .page-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     padding: 25px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
     flex: 1;
     width: 100%;
 }
 
 .page-card h3 {
-    color: var(--text-dark);
+    color: var(--text-light);
     margin-bottom: 12px;
     font-size: 1.4rem;
     display: flex;
@@ -275,7 +285,7 @@ body {
 }
 
 .page-card p {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.95rem;
     line-height: 1.6;
 }
@@ -300,7 +310,7 @@ body {
 .loading-spinner {
     margin: auto;
     font-size: 1.1rem;
-    color: #0284c7;
+    color: #2dd4bf;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -324,141 +334,15 @@ body {
     }
 }
 
-/* Thêm vào cuối file layout.css hoặc tìm nhóm .sidebar-brand */
 .brand-logo-img {
-    height: 40px;          /* Chiều cao vừa vặn với thanh header 70px */
-    width: auto;           /* Tự động co giãn theo tỷ lệ */
-    margin-right: 12px;    /* Khoảng cách với chữ bên phải */
-    object-fit: contain;   /* Giữ nguyên tỉ lệ ảnh */
+    height: 40px;          
+    width: auto;           
+    margin-right: 12px;    
+    object-fit: contain;   
     transition: all 0.3s ease;
 }
 
-/* Khi sidebar thu gọn, nếu logo hình vuông thì giữ nguyên, nếu logo chữ nhật dài có thể ẩn đi hoặc thu nhỏ thêm */
 .sidebar.collapsed .brand-logo-img {
     height: 30px;
-    margin-right: 0;       /* Căn giữa khi thu gọn */
-}
-
-
-/* ==================================================================== */
-/* ✨ ĐÃ ĐỒNG BỘ: THANH SIDEBAR PHONG CÁCH LIGHT MODE HIỆN ĐẠI ✨ */
-/* ==================================================================== */
-.sidebar {
-    width: var(--sidebar-width);
-    background-color: #ffffff; /* Chuyển từ tối sang nền trắng đồng bộ với Page */
-    color: var(--text-dark);
-    display: flex;
-    flex-direction: column;
-    transition: width var(--transition-speed) ease;
-    flex-shrink: 0;
-    z-index: 100;
-    border-right: 1px solid var(--border-color); /* Thêm viền mảnh tinh tế */
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02); /* Đổ bóng nhẹ sang phải */
-}
-
-.sidebar-brand {
-    height: var(--header-height);
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--border-color); /* Đồng bộ viền với Header */
-    overflow: hidden;
-    white-space: nowrap;
-    background: #ffffff;
-}
-
-.brand-text {
-    font-weight: 800; /* Tăng độ đậm nét */
-    font-size: 1.25rem;
-    letter-spacing: 0.5px;
-    color: #2563eb; /* Chuyển màu chữ thương hiệu sang xanh công nghệ */
-}
-
-.sidebar-menu {
-    flex: 1;
-    padding: 20px 12px; /* Thêm padding ngang để tạo khoảng cách khi bo góc menu */
-    display: flex;
-    flex-direction: column;
-    gap: 8px; /* Tăng khoảng cách giữa các nút */
-    overflow-y: auto;
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    color: #64748b; /* Màu chữ mặc định dạng muted thanh lịch */
-    text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-    border-radius: 8px; /* Bo góc nút menu giống như các thẻ card trong trang con */
-}
-
-.menu-item i {
-    font-size: 1.15rem;
-    width: 25px;
-    margin-right: 12px;
-    text-align: center;
-    color: #94a3b8; /* Icon mặc định màu nhẹ nhàng */
-    transition: color 0.2s;
-}
-
-/* Hiệu ứng khi lướt chuột qua (Hover) */
-.menu-item:hover {
-    background-color: #f1f5f9; /* Nền xám nhạt dịu mắt */
-    color: #1e293b;
-}
-
-.menu-item:hover i {
-    color: #475569;
-}
-
-/* Trạng thái đang kích hoạt (Active Page) */
-.menu-item.active {
-    background-color: #e0f2fe; /* Nền xanh nhạt tạo điểm nhấn công nghệ */
-    color: #0284c7; /* Chữ chuyển sang xanh đậm dễ nhìn */
-    font-weight: 600;
-    border-left: none; /* Bỏ viền sọc dọc thô cứng cũ */
-}
-
-.menu-item.active i {
-    color: #0284c7; /* Icon sáng đèn đồng bộ */
-}
-
-.sidebar-footer {
-    padding: 15px 20px;
-    border-top: 1px solid var(--border-color);
-    font-size: 0.8rem;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    background: #f8fafc; /* Đổi nền footer phân tách nhẹ */
-}
-
-.sidebar-footer i {
-    margin-right: 12px;
-    font-size: 0.95rem;
-}
-
-/* --- ĐIỀU CHỈNH KHI SIDEBAR THU GỌN (COLLAPSED) --- */
-.sidebar.collapsed {
-    width: var(--sidebar-collapsed-width);
-}
-
-.sidebar.collapsed .sidebar-menu {
-    padding: 20px 8px;
-}
-
-.sidebar.collapsed .menu-item {
-    padding: 12px 0;
-    justify-content: center;
-}
-
-.sidebar.collapsed .menu-item i {
-    margin-right: 0;
-}
-
-.sidebar.collapsed .brand-text,
-.sidebar.collapsed .menu-text {
-    display: none;
+    margin-right: 0;       
 }

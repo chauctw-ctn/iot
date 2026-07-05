@@ -34,7 +34,7 @@
 |   |   |-- layout.js
 |   |   |-- nav.js
 |   |   |-- ws-client.js
-|   |-- .index.html
+|   |-- index.html
 |   |-- layout.html
 |   |-- login.html
 |-- routes

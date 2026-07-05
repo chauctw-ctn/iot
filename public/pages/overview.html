@@ -31,7 +31,7 @@
             align-items: center;
             background: #fff;
             padding: 5px 15px;
-            border-radius: 8px;
+            border-radius: 0px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 5px;
         }
@@ -41,7 +41,7 @@
             display: flex;
             background: #e2e8f0;
             padding: 4px;
-            border-radius: 6px;
+            border-radius: 0px;
             gap: 4px;
         }
         .tab-btn {
@@ -52,7 +52,7 @@
             font-weight: 600;
             color: #475569;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 0px;
             transition: all 0.2s ease;
         }
         .tab-btn.active {
@@ -82,10 +82,10 @@
         }
         .water-card {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 0px;
             padding: 10px 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-left: 4px solid #14b8a6;
+            border-left: 0px solid #14b8a6;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -103,7 +103,7 @@
             color: #1e293b;
         }
         .water-station-status {
-            font-size: 0.7rem;
+            font-size: 1.2rem;
             font-weight: 600;
         }
         .water-tags-container {
@@ -126,7 +126,7 @@
 
         .card {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 0px;
             padding: 0px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             display: flex;
@@ -145,7 +145,7 @@
             margin-bottom: 10px;
             border-bottom: 2px solid #f0f0f0;
             padding-bottom: 6px;
-            text-align: left;
+            text-align: left;            
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -176,7 +176,7 @@
         }
         .main-content-grid .card {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 0px;
             padding: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             display: flex;
@@ -194,6 +194,7 @@
             width: 100%;
             border-collapse: collapse;
             text-align: left;
+            color: #000;
         }
         .station-table th, .station-table td {
             padding: 10px 12px;
@@ -209,7 +210,7 @@
             background-color: #fee2e2;
             color: #dc2626;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 0px;
             font-size: 11px;
             font-weight: 600;
             display: inline-block;
@@ -219,7 +220,7 @@
             color: #fff;
             border: none;
             padding: 8px 16px;
-            border-radius: 6px;
+            border-radius: 0px;
             cursor: pointer;
             font-weight: 500;
         }
@@ -304,7 +305,7 @@
 <div class="overview-container">
     <div class="header-panel">
         <div style="display: flex; align-items: center; gap: 20px;">
-            <h2 style="margin:0; color:#1e293b;">TỔNG QUAN CÁC CHỈ SỐ KPI</h2>
+            <h2 style="margin:0; color:#1e293b; font-size: 1.2rem;">TỔNG QUAN CÁC CHỈ SỐ KPI</h2>
             
             <div class="tab-bar-container">
                 <button class="tab-btn" id="tabMonreBtn">
@@ -591,7 +592,7 @@ if (typeof OVERVIEW_MODULE_INITIALIZED === 'undefined') {
                                             const maxVal = tagInfo.max_value !== null ? parseFloat(tagInfo.max_value) : null;
                                             const minVal = tagInfo.min_value !== null ? parseFloat(tagInfo.min_value) : null;
                                             if ((maxVal !== null && currentVal > maxVal) || (minVal !== null && currentVal < minVal)) {
-                                                valStyle = 'color: #ef4444; background: #fee2e2; padding: 0 4px; border-radius: 4px; font-weight: 800;';
+                                                valStyle = 'color: #ef4444; background: #fee2e2; padding: 0 4px; border-radius: 0px; font-weight: 800;';
                                             }
                                         }
                                         

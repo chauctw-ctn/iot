@@ -1,8 +1,8 @@
-<div class="page-card animate-fade-in" style="display: flex; flex-direction: column; gap: 15px; height: 100%; box-sizing: border-box; padding: 15px;">
+<div class="page-card animate-fade-in" style="display: flex; flex-direction: column; gap: 5px; height: 100%; box-sizing: border-box; padding: 5px;">
     
     <div id="customToastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
 
-    <div style="background: #fff; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="background: #fff; padding: 10px 15px; border-radius: 0px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <div>
             <h3 style="margin: 0; color: var(--text-dark); display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 700;">
                 <i class="fa-solid fa-gears" style="color: #2563eb;"></i> TRUNG TÂM CẤU HÌNH HỆ THỐNG MẠ TRẬN LOGGER
@@ -11,13 +11,13 @@
                 * Hệ thống tự động sắp xếp: Trạm nhận tag ánh xạ đưa lên đầu $\rightarrow$ Trạm thuần gốc đưa xuống dưới theo Alphabet.
             </p>
         </div>
-        <button onclick="resetAndFetchConfigMatrix()" style="padding: 6px 14px; background: #475569; color: #fff; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+        <button onclick="resetAndFetchConfigMatrix()" style="padding: 6px 14px; background: #475569; color: #fff; border: none; border-radius: 0px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
             <i class="fa-solid fa-arrows-rotate"></i> LÀM MỚI MA TRẬN
         </button>
     </div>
 
-    <div style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 300px; flex: 1;">
-        <div style="overflow-x: auto; overflow-y: auto; flex: 1; border: 1px solid #e2e8f0; border-radius: 6px;">
+    <div style="background: #fff; border: 1px solid var(--border-color); border-radius: 0px; padding: 12px; display: flex; flex-direction: column; min-height: 300px; flex: 1;">
+        <div style="overflow-x: auto; overflow-y: auto; flex: 1; border: 1px solid #e2e8f0; border-radius: 0px;">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem; white-space: nowrap;">
                 <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: 0 1px 0 #cbd5e1;">
                     <tr style="color: #334155; font-weight: 600;">
@@ -41,14 +41,14 @@
         </div>
     </div>
 
-    <div style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="background: #fff; border: 1px solid var(--border-color); border-radius: 0px; padding: 15px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
             <h4 style="margin: 0; font-size: 0.9rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-robot" style="color: #059669;"></i> CẤU HÌNH TIẾN TRÌNH BOT CẢNH BÁO TELEGRAM
             </h4>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label style="font-size: 0.75rem; font-weight: 600; color: #475569;">Trạng thái hoạt động:</label>
-                <select id="tele_enabled" style="font-size: 0.75rem; padding: 4px 8px; font-weight: 700; border-radius: 4px; border: 1px solid #cbd5e1; outline: none; background: #fff; cursor: pointer;">
+                <select id="tele_enabled" style="font-size: 0.75rem; padding: 4px 8px; font-weight: 700; border-radius: 0px; border: 1px solid #cbd5e1; outline: none; background: #fff; cursor: pointer;">
                     <option value="1">🟢 KÍCH HOẠT WORKER</option>
                     <option value="0">🔴 TẮT TIẾN TRÌNH</option>
                 </select>
@@ -58,27 +58,27 @@
         <div style="font-size: 0.75rem; display: grid; grid-template-columns: 2fr 2fr 1fr 1fr; gap: 12px; align-items: flex-end;">
             <div>
                 <label style="display:block; margin-bottom:5px; font-weight:600; color:#475569;">Telegram Bot Token:</label>
-                <input type="text" id="tele_bot_token" placeholder="123456789:ABCdefGhI..." style="width:100%; padding:8px; border-radius:4px; border:1px solid #cbd5e1; outline: none; font-size: 0.8rem;">
+                <input type="text" id="tele_bot_token" placeholder="123456789:ABCdefGhI..." style="width:100%; padding:8px; border-radius:0px; border:1px solid #cbd5e1; outline: none; font-size: 0.8rem;">
             </div>
             <div>
                 <label style="display:block; margin-bottom:5px; font-weight:600; color:#475569;">Telegram Chat ID (Nhóm/Cá nhân):</label>
-                <input type="text" id="tele_chat_id" placeholder="-100123456789" style="width:100%; padding:8px; border-radius:4px; border:1px solid #cbd5e1; outline: none; font-size: 0.8rem;">
+                <input type="text" id="tele_chat_id" placeholder="-100123456789" style="width:100%; padding:8px; border-radius:0px; border:1px solid #cbd5e1; outline: none; font-size: 0.8rem;">
             </div>
             <div>
                 <label style="display:block; margin-bottom:5px; font-weight:600; color:#475569;">Mất Kết Nối Timeout (Phút):</label>
-                <input type="number" id="tele_global_timeout" value="5" style="width:100%; padding:8px; border-radius:4px; border:1px solid #cbd5e1; text-align:center; font-weight:700; background:#fffbeb; outline: none; font-size: 0.8rem;">
+                <input type="number" id="tele_global_timeout" value="5" style="width:100%; padding:8px; border-radius:0px; border:1px solid #cbd5e1; text-align:center; font-weight:700; background:#fffbeb; outline: none; font-size: 0.8rem;">
             </div>
             <div>
                 <label style="display:block; margin-bottom:5px; font-weight:600; color:#475569;">Thời gian lặp lại (Phút):</label>
-                <input type="number" id="tele_silent_duration" value="30" style="width:100%; padding:8px; border-radius:4px; border:1px solid #cbd5e1; text-align:center; font-weight:700; outline: none; font-size: 0.8rem;">
+                <input type="number" id="tele_silent_duration" value="30" style="width:100%; padding:8px; border-radius:0px; border:1px solid #cbd5e1; text-align:center; font-weight:700; outline: none; font-size: 0.8rem;">
             </div>
         </div>
 
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 5px; border-top: 1px dashed #e2e8f0; padding-top: 12px;">
-            <button id="btnTestTele" onclick="testTelegram(this)" style="padding: 8px 18px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 5px; font-weight: 600; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; display: flex; align-items: center; gap: 5px;">
+            <button id="btnTestTele" onclick="testTelegram(this)" style="padding: 8px 18px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 0px; font-weight: 600; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; display: flex; align-items: center; gap: 5px;">
                 <i class="fa-solid fa-paper-plane"></i> GỬI KIỂM TRA (TEST)
             </button>
-            <button id="btnSaveTele" onclick="saveTelegramConfig(this)" style="padding: 8px 24px; background: #059669; color: #fff; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 5px;">
+            <button id="btnSaveTele" onclick="saveTelegramConfig(this)" style="padding: 8px 24px; background: #059669; color: #fff; border: none; border-radius: 0px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 5px;">
                 <i class="fa-solid fa-floppy-disk"></i> LƯU THÔNG SỐ HỆ THỐNG
             </button>
         </div>
@@ -106,7 +106,7 @@
         const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-exclamation';
 
         toast.style.cssText = `
-            background: ${bg}; color: #fff; padding: 12px 18px; border-radius: 6px;
+            background: ${bg}; color: #fff; padding: 12px 18px; border-radius: 0px;
             font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.15); opacity: 0; transform: translateY(-10px);
             transition: all 0.3s ease; min-width: 250px;
@@ -213,13 +213,13 @@
             tr.innerHTML = `
                 <td style="padding:10px; text-align:center; font-weight:600; color:#64748b; border-right:1px solid #e2e8f0;">${index + 1}</td>
                 <td style="padding:10px; font-weight:700; color:#1e293b; border-right:1px solid #e2e8f0; background:rgba(16,185,129,0.05);">${targetId}</td>
-                <td style="padding:10px; border-right:1px solid #e2e8f0;"><input type="text" id="displayName_${targetId}" value="${targetStation.display_name || ''}" placeholder="Tên trạm..." style="width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.8rem;"></td>
+                <td style="padding:10px; border-right:1px solid #e2e8f0;"><input type="text" id="displayName_${targetId}" value="${targetStation.display_name || ''}" placeholder="Tên trạm..." style="width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:0px; font-size:0.8rem;"></td>
                 <td style="padding:10px; border-right:1px solid #e2e8f0; display:flex; flex-direction:column; gap:4px; border-bottom:0;">
-                    <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LAT:</span><input type="number" step="any" id="lat_${targetId}" value="${targetStation.lat !== null ? targetStation.lat : ''}" style="width:100%; padding:2px; border:1px solid #cbd5e1; border-radius:3px; font-size:11px;"></div>
-                    <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LNG:</span><input type="number" step="any" id="lng_${targetId}" value="${targetStation.lng !== null ? targetStation.lng : ''}" style="width:100%; padding:2px; border:1px solid #cbd5e1; border-radius:3px; font-size:11px;"></div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LAT:</span><input type="number" step="any" id="lat_${targetId}" value="${targetStation.lat !== null ? targetStation.lat : ''}" style="width:100%; padding:2px; border:1px solid #cbd5e1; border-radius:0px; font-size:11px;"></div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LNG:</span><input type="number" step="any" id="lng_${targetId}" value="${targetStation.lng !== null ? targetStation.lng : ''}" style="width:100%; padding:2px; border:1px solid #cbd5e1; border-radius:0px; font-size:11px;"></div>
                 </td>
                 <td style="padding:10px; border-right:1px solid #e2e8f0; text-align:center; background:#f8fafc;">
-                    <span style="padding:2px 6px; border-radius:12px; font-size:10px; font-weight:700; display:inline-block; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#166534':'#991b1b'}; border:1px solid ${isOnline?'#bbf7d0':'#fca5a5'};">
+                    <span style="padding:2px 6px; border-radius:0px; font-size:10px; font-weight:700; display:inline-block; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#166534':'#991b1b'}; border:1px solid ${isOnline?'#bbf7d0':'#fca5a5'};">
                         ${isOnline ? '🟢 Online' : '🔴 Offline'}
                     </span>
                     <div style="font-size:10px; color:#64748b; margin-top:5px; font-weight:500;">Hứng: ${getRelativeTimeString(targetStation.current_ts)}</div>
@@ -252,7 +252,7 @@
                     const itemBlock = document.createElement('div');
                     itemBlock.className = "row-tag-threshold-container";
                     itemBlock.setAttribute('data-tag-key', tagKey);
-                    itemBlock.style.cssText = "padding:5px; background:#fff; border:1px solid #e2e8f0; border-radius:4px; margin-bottom:4px; box-shadow:0 1px 2px rgba(0,0,0,0.02);";
+                    itemBlock.style.cssText = "padding:5px; background:#fff; border:1px solid #e2e8f0; border-radius:0px; margin-bottom:4px; box-shadow:0 1px 2px rgba(0,0,0,0.02);";
                     
                     // 🟢 CẢI TIẾN 2: Gom tên tag và giá trị vào chung một khối nối liền nhau: ${friendlyLabel}: ${currentValueDisplay}
                     itemBlock.innerHTML = `
@@ -263,8 +263,8 @@
                             <input type="checkbox" id="thresholdEnable_${targetId}_${tagKey}" ${tag.threshold_enabled ? 'checked' : ''} style="cursor:pointer; transform: scale(0.9); margin-left: auto;">
                         </div>
                         <div style="display:flex; gap:6px;">
-                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Min:</span><input type="number" step="any" id="minTh_${targetId}_${tagKey}" value="${tag.min_value !== null ? tag.min_value : ''}" style="width:45px; padding:1px; border:1px solid #cbd5e1; border-radius:3px; font-size:10px; text-align:center;"></div>
-                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Max:</span><input type="number" step="any" id="maxTh_${targetId}_${tagKey}" value="${tag.max_value !== null ? tag.max_value : ''}" style="width:45px; padding:1px; border:1px solid #cbd5e1; border-radius:3px; font-size:10px; text-align:center;"></div>
+                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Min:</span><input type="number" step="any" id="minTh_${targetId}_${tagKey}" value="${tag.min_value !== null ? tag.min_value : ''}" style="width:45px; padding:1px; border:1px solid #cbd5e1; border-radius:0px; font-size:10px; text-align:center;"></div>
+                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Max:</span><input type="number" step="any" id="maxTh_${targetId}_${tagKey}" value="${tag.max_value !== null ? tag.max_value : ''}" style="width:45px; padding:1px; border:1px solid #cbd5e1; border-radius:0px; font-size:10px; text-align:center;"></div>
                         </div>
                     `;
                     tdTargetTags.appendChild(itemBlock);
@@ -280,7 +280,7 @@
             tdSourceSelect.style.background = "rgba(37,99,235,0.02)";
             
             const select = document.createElement('select');
-            select.style.cssText = "width:100%; padding:5px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.8rem; background:#fff; font-weight:500;";
+            select.style.cssText = "width:100%; padding:5px; border:1px solid #cbd5e1; border-radius:0px; font-size:0.8rem; background:#fff; font-weight:500;";
             select.innerHTML = '<option value="">-- Chọn Trạm Cho --</option>';
             overviewData.forEach(item => {
                 if (item.logger_id !== targetId) {
@@ -314,11 +314,11 @@
             tdAction.innerHTML = `
                 <div style="display: flex; gap: 6px; justify-content: center; width: 100%;">
                     <button onclick="saveRowConfigMapping('${targetId}', '${select.value}', this.parentElement.parentElement.parentElement, this)" 
-                            style="flex: 1; padding: 6px 4px; background: #2563eb; color: #fff; border: none; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap;">
+                            style="flex: 1; padding: 6px 4px; background: #2563eb; color: #fff; border: none; border-radius: 0px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap;">
                         <i class="fa-solid fa-floppy-disk"></i> LƯU
                     </button>
                     <button onclick="deleteConfigStation('${targetId}', this)" 
-                            style="flex: 1; padding: 6px 4px; background: #dc2626; color: #fff; border: none; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap;">
+                            style="flex: 1; padding: 6px 4px; background: #dc2626; color: #fff; border: none; border-radius: 0px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap;">
                         <i class="fa-solid fa-trash-can"></i> XÓA
                     </button>
                 </div>
@@ -350,7 +350,7 @@
                     const friendlyName = TAG_LABELS[cleanKey] || tagKey;
 
                     const label = document.createElement('label');
-                    label.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:3px; background:#fff; border:1px solid #e2e8f0; border-radius:3px; font-size:11px; cursor:pointer;";
+                    label.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:3px; background:#fff; border:1px solid #e2e8f0; border-radius:0px; font-size:11px; cursor:pointer;";
                     label.innerHTML = `
                         <div style="display:flex; align-items:center; gap:4px;"><input type="checkbox" name="sourceTags_${targetStationId}" value="${tagKey}" ${isAlreadyMapped ? 'checked' : ''}><span style="font-weight:600; color:#334155;">${friendlyName}</span></div>
                         <span style="font-size:10px; color:#94a3b8;">V: ${tagInfo.value}</span>
