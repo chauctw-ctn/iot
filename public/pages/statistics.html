@@ -401,8 +401,14 @@
             grid-template-columns: 1fr !important;
         }
 
+        .filter-wrapper h3 {
+            font-size: 0.98rem;
+            white-space: normal;
+        }
+
         .page-card > div:nth-of-type(2) > div:first-child {
             align-items: flex-start !important;
+            flex-direction: column !important;
         }
 
         .page-card > div:nth-of-type(2) table {
@@ -413,6 +419,14 @@
     @media (max-width: 480px) {
         .filter-wrapper h3 {
             font-size: 0.98rem;
+        }
+
+        .page-card {
+            padding: 4px !important;
+        }
+
+        .page-card > div:nth-of-type(2) table {
+            min-width: 720px;
         }
     }
 </style>
