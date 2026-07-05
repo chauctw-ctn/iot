@@ -103,11 +103,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Đăng ký các API chức năng nghiệp vụ hệ thống (Đã được bảo vệ sau session)
-// app.use('/api/stations', stationRoutes);
-// app.use('/api/overview', overviewRoutes); 
-// app.use('/api/alerts', alertRoutes); 
-// app.use('/api/kpi', kpiRoutes);
 app.use('/api/stations', requireAuth, stationRoutes);
 app.use('/api/overview', requireAuth, overviewRoutes); 
 app.use('/api/alerts', requireAuth, alertRoutes); 
@@ -128,6 +123,25 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (error) => {
   console.error('❌ [PROCESS] Phát hiện lỗi nghiêm trọng chưa được bắt:', error.message);
 });
+
+
+// 📡 1. Kích hoạt nhận dữ liệu qua cổng TCP 1885 độc lập (Mới)
+  try {
+    startMqttGatewayListener();
+  } catch (err) {
+    console.error("❌ [GATEWAY] Lỗi khởi động MQTT TCP Gateway mới:", err.message);
+  }
+
+  // 🔄 2. Khởi động các luồng fetch cào quét dữ liệu cũ của bạn
+  try { 
+    connectMQTT(); 
+  } catch (err) {
+    console.error("❌ [FETCH] Lỗi kết nối luồng MQTT Fetch cũ:", err.message);
+  }
+  
+  fetchMonreData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi MONRE:", err.message)); 
+  fetchScadaData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi SCADA:", err.message)); 
+  fetchTVAData().catch(err => console.error("❌ [FETCH] Lỗi chu kỳ mồi TVA:", err.message)); 
 
 // ==========================================
 // 🚀 6. KHỞI CHẠY SERVER & WORKERS
