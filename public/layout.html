@@ -25,11 +25,11 @@
             <nav class="sidebar-menu">
                 <a href="#" data-page="overview" class="menu-item active">
                     <i class="fa-solid fa-chart-pie"></i>
-                    <span class="menu-text">DASHBOARD</span>
+                    <span class="menu-text">Dashboard</span>
                 </a>
                 <a href="#" data-page="logger-map" class="menu-item">
                     <i class="fa-solid fa-map-location-dot"></i>
-                    <span class="menu-text">BẢN ĐỒ LOGGER</span>
+                    <span class="menu-text">Bản đồ Logger</span>
                 </a>
                 <!-- <a href="#" data-page="water-quality" class="menu-item">
                     <i class="fa-solid fa-droplet-slash"></i>
@@ -37,24 +37,26 @@
                 </a> -->
                 <a href="#" data-page="statistics" class="menu-item">
                     <i class="fa-solid fa-chart-line"></i>
-                    <span class="menu-text">DỮ LIỆU THỐNG KÊ</span>
+                    <span class="menu-text">Thống kê</span>
                 </a>
                 <a href="#" data-page="system-config" class="menu-item">
                     <i class="fa-solid fa-gear"></i>
-                    <span class="menu-text">CẤU HÌNH HỆ THỐNG</span>
+                    <span class="menu-text">Cài đặt</span>
                 </a>
 
                 <a href="#" data-page="user-config" class="menu-item">
                     <i class="fa-solid fa-users-gear"></i>
-                    <span class="menu-text">CẤU HÌNH TÀI KHOẢN</span>
+                    <span class="menu-text">Quản lý người dùng</span>
                 </a>
             </nav>
 
-            <div class="sidebar-footer">
+            <!-- <div class="sidebar-footer">
                 <i class="fa-solid fa-clock-rotate-left"></i>
                 <span class="menu-text">Hệ thống: v1.0.0</span>
-            </div>
+            </div> -->
         </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
         <div class="main-wrapper">
             
@@ -63,7 +65,7 @@
                     <button class="toggle-sidebar-btn" id="toggleSidebar">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-                    <h2 class="page-title" id="pageTitle">DASHBOARD</h2>
+                    <h2 class="page-title" id="pageTitle">Dashboard</h2>
                 </div>
                 
                 <div class="header-right">
@@ -79,9 +81,20 @@
 
                     <script>
                     // Thêm đoạn xử lý nạp thông tin này vào bên trong thẻ script có sẵn của file layout.html
-                    fetch('/api/users/me').then(r => r.json()).then(data => {
+                    window.currentUserRole = null;
+                    window.userProfilePromise = fetch('/api/users/me').then(r => r.json()).then(data => {
                         if(data.loggedIn) {
+                            window.currentUserRole = data.user.role;
                             document.getElementById('topNavFullName').innerText = `${data.user.full_name} (${data.user.role})`;
+
+                            const restrictedPages = new Set(['system-config', 'user-config']);
+                            if (data.user.role === 'Operator') {
+                                document.querySelectorAll('.menu-item').forEach(item => {
+                                    if (restrictedPages.has(item.getAttribute('data-page'))) {
+                                        item.style.display = 'none';
+                                    }
+                                });
+                            }
                         } else {
                             window.location.href = '/login';
                         }
@@ -124,23 +137,74 @@
         document.addEventListener("DOMContentLoaded", () => {
             const toggleBtn = document.getElementById("toggleSidebar");
             const sidebar = document.getElementById("sidebar");
+            const sidebarBackdrop = document.getElementById("sidebarBackdrop");
             const menuItems = document.querySelectorAll(".menu-item");
             const mainContent = document.getElementById("mainContent");
             const pageTitle = document.getElementById("pageTitle");
+            const isMobileViewport = () => window.matchMedia("(max-width: 768px)").matches;
+            const restrictedPages = new Set(['system-config', 'user-config']);
+
+            const getVisibleMenuItems = () => Array.from(menuItems).filter(item => item.style.display !== 'none');
+
+            const hasAccessToPage = (pageName) => {
+                if (window.currentUserRole !== 'Operator') return true;
+                return !restrictedPages.has(pageName);
+            };
+
+            const getFallbackPage = () => {
+                const visibleItem = getVisibleMenuItems().find(item => item.getAttribute('data-page') === 'overview')
+                    || getVisibleMenuItems()[0];
+                return visibleItem ? visibleItem.getAttribute('data-page') : 'overview';
+            };
+
+            const syncSidebarState = () => {
+                if (isMobileViewport()) {
+                    sidebar.classList.remove("collapsed");
+                    document.body.classList.remove("sidebar-open");
+                } else {
+                    document.body.classList.remove("sidebar-open");
+                    if (localStorage.getItem("sidebar-collapsed") === "true") {
+                        sidebar.classList.add("collapsed");
+                    } else {
+                        sidebar.classList.remove("collapsed");
+                    }
+                }
+            };
 
             // 1. Quản lý Đóng / Mở Sidebar
-            if (localStorage.getItem("sidebar-collapsed") === "true") {
-                sidebar.classList.add("collapsed");
-            }
+            syncSidebarState();
             toggleBtn.addEventListener("click", () => {
+                if (isMobileViewport()) {
+                    document.body.classList.toggle("sidebar-open");
+                    return;
+                }
+
                 sidebar.classList.toggle("collapsed");
                 localStorage.setItem("sidebar-collapsed", sidebar.classList.contains("collapsed"));
             });
 
+            if (sidebarBackdrop) {
+                sidebarBackdrop.addEventListener("click", () => {
+                    document.body.classList.remove("sidebar-open");
+                });
+            }
+
+            window.addEventListener("resize", syncSidebarState);
+
             // 2. Hàm CORE nạp động nội dung HTML từ thư mục /pages/
             // 2. Hàm CORE nạp động nội dung HTML từ thư mục /pages/
             async function loadPage(pageName, pageText) {
+                if (!hasAccessToPage(pageName)) {
+                    const fallbackPage = getFallbackPage();
+                    const fallbackItem = document.querySelector(`.menu-item[data-page="${fallbackPage}"]`);
+                    const fallbackTitle = fallbackItem ? fallbackItem.querySelector('.menu-text').innerText : 'Dashboard';
+                    if (pageName !== fallbackPage) {
+                        return loadPage(fallbackPage, fallbackTitle);
+                    }
+                }
+
                 mainContent.innerHTML = `<div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối dữ liệu phân hệ...</div>`;
+                mainContent.scrollTop = 0;
                 
                 try {
                     const response = await fetch(`/pages/${pageName}.html`);
@@ -149,6 +213,7 @@
                     // 🟢 ĐÃ SỬA: Phải đọc text() trước rồi mới gán và thực thi Script
                     const htmlContent = await response.text();
                     mainContent.innerHTML = htmlContent;
+                    mainContent.classList.remove('page-fade-active');
                     void mainContent.offsetWidth; 
                     mainContent.classList.add('page-fade-active');
                     
@@ -187,27 +252,43 @@
                     // Đọc thuộc tính để lấy tên trang và tiến hành load
                     const pageName = item.getAttribute("data-page");
                     const pageText = item.querySelector(".menu-text").innerText;
+
+                    if (!hasAccessToPage(pageName)) {
+                        return;
+                    }
                     
                     loadPage(pageName, pageText);
+
+                    if (isMobileViewport()) {
+                        document.body.classList.remove("sidebar-open");
+                    }
                 });
             });
 
             // 4. Khởi tạo: Tự động khôi phục lại trang cuối cùng trước khi F5 hoặc load mặc định trang đầu
-            const savedPage = localStorage.getItem("active-page-route") || "overview";
-            const savedTitle = localStorage.getItem("active-page-title") || "DASHBOARD";
-            loadPage(savedPage, savedTitle);
-            
-            // Tìm đúng item menu đã lưu để sáng đèn lên
-            menuItems.forEach(i => {
-                if(i.getAttribute("data-page") === savedPage) {
-                    i.classList.add("active");
-                } else {
-                    i.classList.remove("active");
-                }
-            });
-            
-            // Tiến hành kích hoạt nạp mồi trang ban đầu
-            loadPage(savedPage, savedTitle);
+            const initializeLayout = async () => {
+                await (window.userProfilePromise || Promise.resolve());
+
+                const savedPage = localStorage.getItem("active-page-route") || "overview";
+                const savedTitle = localStorage.getItem("active-page-title") || "Dashboard";
+                const initialPage = hasAccessToPage(savedPage) ? savedPage : getFallbackPage();
+                const initialItem = document.querySelector(`.menu-item[data-page="${initialPage}"]`);
+                const initialTitle = initialItem ? initialItem.querySelector('.menu-text').innerText : savedTitle;
+
+                // Tìm đúng item menu đã lưu để sáng đèn lên
+                menuItems.forEach(i => {
+                    if(i.getAttribute("data-page") === initialPage) {
+                        i.classList.add("active");
+                    } else {
+                        i.classList.remove("active");
+                    }
+                });
+
+                // Tiến hành kích hoạt nạp mồi trang ban đầu
+                loadPage(initialPage, initialTitle);
+            };
+
+            initializeLayout();
         });
     </script>
 

@@ -1,15 +1,15 @@
 <div class="page-card animate-fade-in" style="display: flex; flex-direction: column; gap: 5px; height: 100%; box-sizing: border-box; padding: 5px;">
     
-    <div class="filter-wrapper" style="background: #f8fafc; padding: 15px; border-radius: 0px; border: 1px solid #e2e8f0;">
-        <h3 style="margin-top: 0; margin-bottom: 15px; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+    <div class="filter-wrapper" style="background: #f8fafc; padding: 5px; border-radius: 0px; border: 1px solid #e2e8f0;">
+        <h3 style="margin-top: 0; margin-bottom: 5px; color: #0f172a; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
             <i class="fa-solid fa-table" style="color: #059669;"></i> BẢNG DỮ LIỆU THỐNG KÊ LOGGER TỔNG HỢP
         </h3>
         
-        <form id="statsFilterForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 120px; gap: 12px; align-items: flex-end;">
+        <form id="statsFilterForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 120px; gap: 5px; align-items: flex-end;">
             
             <div>
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Phân Nhóm Trạm</label>
-                <select id="filterGroupType" style="width: 100%; padding: 8px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; font-weight: 600; background: #fffdfa;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px;">Phân Nhóm Trạm</label>
+                <select id="filterGroupType" style="width: 100%; padding: 5px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; font-weight: 600; background: #fff; min-height: 40px;">
                     <option value="ALL">-- Tất cả hệ thống --</option>
                     <option value="REALTIME" selected>DỮ LIỆU WEB</option>
                     <option value="MONRE">BỘ TÀI NGUYÊN</option>
@@ -17,15 +17,15 @@
             </div>
 
             <div>
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Chọn Trạm Vận Hành</label>
-                <select id="filterStationId" style="width: 100%; padding: 8px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem;" required>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px;">Chọn Trạm Vận Hành</label>
+                <select id="filterStationId" style="width: 100%; padding: 5px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; min-height: 40px;" required>
                     <option value="ALL">-- Tất cả trong nhóm --</option>
                 </select>
             </div>
 
             <div>
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Lọc Theo Chỉ Số (Tag)</label>
-                <select id="filterTagSelect" style="width: 100%; padding: 8px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; font-weight: 600; color: #0284c7;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px;">Lọc Theo Chỉ Số (Tag)</label>
+                <select id="filterTagSelect" style="width: 100%; padding: 5px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; font-weight: 600; color: #0d9488; min-height: 40px;">
                     <option value="ALL">-- Tất cả chỉ số --</option>
                     <option value="flow">Lưu lượng</option>
                     <option value="totalIndex">Tổng chỉ số</option>                    
@@ -38,18 +38,18 @@
             </div>
 
             <div>
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Từ Ngày</label>
-                <input type="datetime-local" id="filterStartTime" style="width: 100%; padding: 7px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem;" required>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px;">Từ Ngày</label>
+                <input type="datetime-local" id="filterStartTime" style="width: 100%; padding: 5px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; min-height: 40px;" required>
             </div>
 
             <div>
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Đến Ngày</label>
-                <input type="datetime-local" id="filterEndTime" style="width: 100%; padding: 7px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem;" required>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px;">Đến Ngày</label>
+                <input type="datetime-local" id="filterEndTime" style="width: 100%; padding: 5px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; min-height: 40px;" required>
             </div>
 
             <div>
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px;">Độ Phân Giải</label>
-                <select id="filterInterval" style="width: 100%; padding: 8px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px;">Độ Phân Giải</label>
+                <select id="filterInterval" style="width: 100%; padding: 5px; border-radius: 0px; border: 1px solid #cbd5e1; font-size: 0.85rem; min-height: 40px;">
                     <option value="5" selected>5 Phút</option>
                     <option value="15">15 Phút</option>
                     <option value="30">30 Phút</option>
@@ -59,31 +59,31 @@
             </div>
 
             <div>
-                <button type="submit" style="width: 100%; padding: 8px; background: #059669; color: white; border: none; border-radius: 0px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                <button type="submit" style="width: 100%; padding: 5px; background: #0d9488; color: white; border: none; border-radius: 0px; font-weight: 600; cursor: pointer; font-size: 0.85rem; min-height: 40px;">
                     <i class="fa-solid fa-arrows-rotate"></i> TRÍCH XUẤT
                 </button>
             </div>
         </form>
     </div>
 
-    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 0px; padding: 15px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h4 style="margin: 0; font-size: 0.9rem; color: #475569;"><i class="fa-solid fa-table-list"></i> Ma trận thông số đo chi tiết</h4>
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 0px; padding: 5px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 5px; margin-bottom: 5px; flex-wrap: wrap;">
+            <h4 style="margin: 0; font-size: 0.9rem; color: #0f172a;"><i class="fa-solid fa-table-list"></i> Ma trận thông số đo chi tiết</h4>
             <span id="txtDataCount" style="font-size: 0.8rem; color: #64748b; font-weight: 500;"></span>
         </div>
         
-        <div style="flex: 1; overflow-y: auto; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 0px;">
+        <div style="flex: 1; overflow-y: auto; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 0px; background: white;">
             <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.82rem; white-space: nowrap;">
                 <thead id="statsThead" style="position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: 0 1px 0 #cbd5e1;">
                     <tr>
-                        <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #334155;">STT</th>
-                        <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #334155; text-align: left;">Thời gian</th>
-                        <th style="padding: 12px 10px; border: 1px solid #cbd5e1; color: #64748b; font-style: italic;">Chưa có dữ liệu trích xuất...</th>
+                        <th style="padding: 5px; border: 1px solid #cbd5e1; color: #334155;">STT</th>
+                        <th style="padding: 5px; border: 1px solid #cbd5e1; color: #334155; text-align: left;">Thời gian</th>
+                        <th style="padding: 5px; border: 1px solid #cbd5e1; color: #64748b; font-style: italic;">Chưa có dữ liệu trích xuất...</th>
                     </tr>
                 </thead>
                 <tbody id="statsTbody">
                     <tr>
-                        <td colspan="3" style="text-align: center; padding: 30px; color: #94a3b8; font-style: italic;">Thiết lập mốc thời gian và nhấn nút TRÍCH XUẤT dữ liệu...</td>
+                        <td colspan="3" style="text-align: center; padding: 5px; color: #94a3b8; font-style: italic;">Thiết lập mốc thời gian và nhấn nút TRÍCH XUẤT dữ liệu...</td>
                     </tr>
                 </tbody>
             </table>
@@ -360,3 +360,59 @@
     setTimeout(startModule, 50);
 })();
 </script>
+
+<style>
+    .page-card.animate-fade-in {
+        gap: 5px !important;
+    }
+
+    .page-card,
+    .filter-wrapper,
+    .page-card > div:nth-of-type(2) {
+        border-radius: 0 !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    #statsFilterForm > div,
+    #statsFilterForm input,
+    #statsFilterForm select,
+    #statsFilterForm button {
+        min-width: 0;
+    }
+
+    #statsFilterForm input,
+    #statsFilterForm select,
+    #statsFilterForm button {
+        min-height: 40px !important;
+    }
+
+    #statsThead th,
+    #statsTbody td {
+        padding: 5px !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .page-card > div:nth-of-type(2) table {
+        min-width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        #statsFilterForm {
+            grid-template-columns: 1fr !important;
+        }
+
+        .page-card > div:nth-of-type(2) > div:first-child {
+            align-items: flex-start !important;
+        }
+
+        .page-card > div:nth-of-type(2) table {
+            min-width: 860px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .filter-wrapper h3 {
+            font-size: 0.98rem;
+        }
+    }
+</style>

@@ -28,25 +28,42 @@
 </div>
 
 <style>
+    :root {
+        --surface: #ffffff;
+        --surface-strong: #e2e8f0;
+        --text-dark: #0f172a;
+        --text-muted: #64748b;
+        --border-color: rgba(15, 23, 42, 0.08);
+        --primary: #14b8a6;
+        --active: #0d9488;
+        --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+        --space: 5px;
+    }
+
+    .map-wrapper {
+        gap: var(--space) !important;
+        min-height: 0;
+    }
+
     .map-filter-bar {
-        background: var(--bg-card);
+        background: var(--surface);
         border: 1px solid var(--border-color);
-        padding: 10px 10px;
+        padding: var(--space);
         border-radius: 0px;
         display: flex;
         align-items: center;
-        gap: 25px;
+        gap: var(--space);
         flex-wrap: wrap;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 0px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 0;
     }
 
     .leaflet-tooltip.custom-station-label {
         border-radius: 0px;
-        padding: 3px 7px;
+        padding: 5px;
         font-size: 0.8rem;
         font-weight: 700;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow-sm);
         transition: all 0.2s ease;
     }
 
@@ -66,18 +83,53 @@
         border-top-color: transparent;
     }
 
-    .filter-group { display: flex; align-items: center; gap: 8px; }
+    .filter-group { display: flex; align-items: center; gap: var(--space); }
     .filter-group label { font-weight: 600; font-size: 0.9rem; color: var(--text-dark); }
-    .filter-group select { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 0px; outline: none; font-size: 0.9rem; background-color: var(--bg-main); }
+    .filter-group select { padding: 5px; border: 1px solid var(--border-color); border-radius: 0px; outline: none; font-size: 0.9rem; background-color: var(--surface); min-height: 40px; }
     .map-stats { font-size: 0.9rem; margin-left: auto; font-weight: 500; }
     .text-online { color: #166534; margin: 0 5px; }
     .text-offline { color: #991b1b; }
     .map-popup-table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.8rem; }
-    .map-popup-table th { background-color: #f1f5f9; color: #334155; text-align: left; padding: 3px 6px; border-bottom: 1px solid #cbd5e1; }
-    .map-popup-table td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; }
+    .map-popup-table th { background-color: #f1f5f9; color: #334155; text-align: left; padding: 5px; border-bottom: 1px solid #cbd5e1; }
+    .map-popup-table td { padding: 5px; border-bottom: 1px solid #e2e8f0; }
     
-    .leaflet-popup-content-wrapper { border-radius: 0px; padding: 3px; }
-    .leaflet-popup-content { width: 330px !important; margin: 10px 12px !important; }
+    .leaflet-popup-content-wrapper { border-radius: 0px; padding: 5px; }
+    .leaflet-popup-content { width: min(330px, 92vw) !important; margin: 10px 12px !important; }
+
+    #map {
+        min-height: 420px !important;
+        border-radius: 0 !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
+
+    @media (max-width: 768px) {
+        .map-filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group,
+        .map-stats {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        #map {
+            min-height: 320px !important;
+            height: 60vh !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .filter-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group label {
+            margin: 0;
+        }
+    }
 </style>
 
 <script>  

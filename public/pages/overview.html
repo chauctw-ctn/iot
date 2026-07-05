@@ -14,121 +14,138 @@
     <script src="../shared/gauge.js"></script>
     
     <style>
-        /* 1. Ép container tổng chiếm toàn bộ không gian được cấp phát */
+        :root {
+            --page-bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-strong: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(15, 23, 42, 0.08);
+            --primary: #14b8a6;
+            --active: #0d9488;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+            --space: 5px;
+        }
+
         .overview-container {
             width: 100%;
-            height: 100vh;
+            min-height: calc(100vh - 70px);
+            height: auto;
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
-            padding: 5px;
-            overflow: hidden;
+            padding: var(--space);
+            overflow: visible;
+            gap: var(--space);
+            background: transparent;
         }
-        /* 2. Giữ nguyên header panel */
+
         .header-panel {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #fff;
-            padding: 5px 15px;
+            gap: var(--space);
+            background: var(--surface);
+            padding: var(--space);
             border-radius: 0px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 5px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 0;
+            flex-wrap: wrap;
         }
-        
-        /* Cấu trúc điều khiển Tab Switcher chuyên nghiệp */
+
         .tab-bar-container {
             display: flex;
-            background: #e2e8f0;
-            padding: 4px;
+            background: var(--surface-strong);
+            padding: var(--space);
             border-radius: 0px;
-            gap: 4px;
+            gap: var(--space);
+            flex-wrap: wrap;
         }
         .tab-btn {
             background: transparent;
             border: none;
-            padding: 6px 16px;
+            padding: 5px 10px;
             font-size: 0.85rem;
             font-weight: 600;
-            color: #475569;
+            color: var(--text-muted);
             cursor: pointer;
             border-radius: 0px;
             transition: all 0.2s ease;
+            min-height: 40px;
         }
         .tab-btn.active {
-            background: #fff;
-            color: #2563eb;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: var(--surface);
+            color: var(--active);
+            box-shadow: var(--shadow-sm);
         }
-        
-        /* Cấu trúc Flexbox tự động chia đều không gian phẳng theo chiều ngang khi số lượng Gauge thay đổi */
+
         .grid-kpi {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: stretch;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 5px;
             width: 100%;
-            margin-bottom: 5px;
+            margin-bottom: 0;
         }
-        
-        /* 🟢 CẤU TRÚC KHỐI CHẤT LƯỢNG NƯỚC MỚI BỔ SUNG */
+
         .quality-water-panel {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 5px;
             width: 100%;
-            margin-bottom: 5px;
+            margin-bottom: 0;
         }
         .water-card {
-            background: #fff;
+            background: var(--surface);
             border-radius: 0px;
-            padding: 10px 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-left: 0px solid #14b8a6;
+            padding: 5px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary);
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
         }
         .water-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px dashed #e2e8f0;
-            padding-bottom: 4px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 5px;
         }
         .water-station-title {
             font-size: 0.85rem;
             font-weight: 700;
-            color: #1e293b;
+            color: var(--text-dark);
         }
         .water-station-status {
-            font-size: 1.2rem;
+            font-size: 0.8rem;
             font-weight: 600;
         }
         .water-tags-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 5px;
             align-items: center;
         }
         .water-tag-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             font-size: 0.8rem;
-            color: #475569;
+            color: var(--text-muted);
         }
         .water-tag-val {
             font-weight: 700;
-            color: #0d9488;
+            color: var(--active);
         }
 
         .card {
-            background: #fff;
+            background: var(--surface);
             border-radius: 0px;
             padding: 0px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -140,20 +157,19 @@
             width: 100%;
             font-size: 0.95rem;
             font-weight: 700;
-            color: #333;
+            color: var(--text-dark);
             margin-top: 0;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 6px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
             text-align: left;            
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* 🛠️ BỔ SUNG ĐỂ CANH GIỮA HOÀN HẢO */
             display: flex;
             justify-content: center;  /* Căn giữa theo chiều ngang */
             align-items: center;      /* Căn giữa theo chiều dọc */
-            gap: 8px;                 /* Tạo khoảng cách đều giữa Icon và Chữ */
+            gap: 5px;                 /* Tạo khoảng cách đều giữa Icon và Chữ */
             text-align: center;
         }
         .gauge-host {
@@ -175,10 +191,11 @@
             min-height: 0;
         }
         .main-content-grid .card {
-            background: #fff;
+            background: var(--surface);
             border-radius: 0px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 5px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             align-items: stretch;
@@ -189,42 +206,45 @@
             flex: 1;
             overflow-x: auto;
             overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: var(--surface);
         }
         .station-table {
             width: 100%;
             border-collapse: collapse;
             text-align: left;
-            color: #000;
+            color: var(--text-dark);
         }
         .station-table th, .station-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 5px;
+            border-bottom: 1px solid var(--border-color);
             font-size: 0.85rem;
         }
         .station-table th {
             background-color: #f8fafc;
-            color: #475569;
+            color: var(--text-muted);
             font-weight: 600;
         }
         .badge-danger {
             background-color: #fee2e2;
             color: #dc2626;
-            padding: 4px 8px;
+            padding: 5px;
             border-radius: 0px;
             font-size: 11px;
             font-weight: 600;
             display: inline-block;
         }
         .refresh-btn {
-            background: #2563eb;
+            background: var(--active);
             color: #fff;
             border: none;
-            padding: 8px 16px;
+            padding: 5px 10px;
             border-radius: 0px;
             cursor: pointer;
             font-weight: 500;
+            min-height: 40px;
         }
-        .refresh-btn:hover { background: #1d4ed8; }
+        .refresh-btn:hover { background: var(--color-hover); }
 
         /* Style màu sắc cho nhãn chỉ số đếm cảnh báo trên tiêu đề */
         #lblOfflineSummary { color: #dc2626; }
@@ -235,7 +255,7 @@
     /* ==================================================================== */
     @media (max-width: 1200px) {
         .grid-kpi {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .quality-water-panel {
             grid-template-columns: 1fr;
@@ -244,13 +264,13 @@
 
     @media (max-width: 768px) {
         .overview-container {
-            padding: 4px;
+            padding: 5px;
             height: auto; 
             overflow-y: auto;
         }
         
         .header-panel {
-            padding: 8px;
+            padding: 5px;
             flex-direction: column; 
             align-items: stretch;
             text-align: center;
@@ -279,23 +299,38 @@
         }
         
         .grid-kpi {
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 6px;
+            grid-template-columns: 1fr;
+            gap: 5px;
         }
         
         .main-content-grid {
             grid-template-columns: 1fr !important; 
-            gap: 8px;
+            gap: 5px;
         }
 
         .main-content-grid .card {
             min-height: 280px; 
-            padding: 10px;
+            padding: 5px;
         }
         
         .station-table th:nth-child(2), 
         .station-table td:nth-child(2) {
             display: none; 
+        }
+    }
+
+    @media (max-width: 480px) {
+        .tab-bar-container {
+            width: 100%;
+        }
+
+        .tab-btn,
+        .refresh-btn {
+            width: 100%;
+        }
+
+        .card-title {
+            white-space: normal;
         }
     }
     </style>

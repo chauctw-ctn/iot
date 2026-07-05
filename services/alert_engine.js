@@ -17,6 +17,36 @@ async function sendTelegramNotification(text) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function buildOfflineAlertMessage(alertStations, totalStations, timeoutMinutes) {
+  const lines = alertStations.map((station) => `• <b>${station.name}</b>: ${station.detail}`);
+
+  return [
+    `🔴 <b>CẢNH BÁO MẤT KẾT NỐI</b>`,
+    `📊 ${alertStations.length}/${totalStations} trạm đang lỗi`,
+    `⏱️ Ngưỡng trễ: ${timeoutMinutes} phút`,
+    '',
+    ...lines,
+  ].join('\n');
+}
+
+function buildRecoveryMessage(recoveryStations, totalStations) {
+  const lines = recoveryStations.map((station) => `• <b>${station.name}</b>: Đã kết nối lại`);
+
+  return [
+    `🟢 <b>TRẠM KHÔI PHỤC KẾT NỐI</b>`,
+    `📊 ${recoveryStations.length}/${totalStations} trạm đã online lại`,
+    '',
+    ...lines,
+  ].join('\n');
+}
+
 /**
  * 📡 TIẾN TRÌNH TỰ ĐỘNG QUÉT VÀ GỬI CẢNH BÁO MẤT KẾT NỐI (OFFLINE / ONLINE)
  * 🟢 ĐÃ ĐỒNG BỘ 100% THUẬT TOÁN KHOẢNG LỆCH (CURRENT_TS - DATA_TS) GIỐNG FRONTEND UI
@@ -59,6 +89,9 @@ async function checkSystemOfflineAlert() {
     `;
 
     const checkedStations = await db.query(queryStr);
+    const totalStations = checkedStations.rows.length;
+    const offlineAlertStations = [];
+    const recoveryStations = [];
 
     for (let station of checkedStations.rows) {
       const delayMinutes = station.delay_minutes !== null ? Math.floor(station.delay_minutes) : 999999;
@@ -66,18 +99,18 @@ async function checkSystemOfflineAlert() {
       // So sánh trực tiếp số phút trễ truyền nhận thực tế với ngưỡng Timeout Sập Mạng chung
       const isCurrentlyOffline = (station.max_current_ts === null || station.max_data_ts === null || delayMinutes > globalTimeoutMinutes);
 
-      const stationIdClean = String(station.station_id).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const displayNameClean = String(station.display_name || 'Chưa đặt tên').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const stationName = escapeHtml(station.display_name || `Trạm ${station.station_id}`);
 
       if (isCurrentlyOffline) {
-        // --- LUỒNG TRẠM ĐANG BỊ OFFLINE ---
-        const delayMinsStr = (delayMinutes < 99999) ? `${delayMinutes}` : 'vô hạn';
-        const message = `🔴 <b>CẢNH BÁO: TRẠM MẤT KẾT NỐI (OFFLINE)</b>\n📌 Trạm: <b>${stationIdClean}</b> (${displayNameClean})\n⏱️ Thời gian thiết bị trễ: <code>${delayMinsStr}</code> phút.\n⚠️ Ngưỡng thiết lập hệ thống chung: ${globalTimeoutMinutes} phút.`;
+        const delayDetail = (station.max_current_ts === null || station.max_data_ts === null)
+          ? 'Không có dữ liệu'
+          : `Trễ ${delayMinutes} phút`;
+        const isNewOffline = station.last_known_status !== 'OFFLINE';
+        const lastAlerted = station.last_alerted_ts ? new Date(station.last_alerted_ts).getTime() : 0;
+        const secondsSinceLastAlert = isNewOffline ? Number.MAX_SAFE_INTEGER : Math.floor((Date.now() - lastAlerted) / 1000);
+        const shouldNotifyOffline = isNewOffline || secondsSinceLastAlert >= globalRepeatIntervalSecs;
 
-        if (station.last_known_status !== 'OFFLINE') {
-          // Trạng thái mạng thay đổi sang OFFLINE -> Bắn tin ngay lập tức
-          await sendTelegramNotification(message);
-          
+        if (isNewOffline) {
           await db.query(`
             UPDATE public.logger_stations 
             SET last_known_status = 'OFFLINE', 
@@ -85,23 +118,20 @@ async function checkSystemOfflineAlert() {
                 last_alerted_ts = NOW() 
             WHERE station_id = $1;
           `, [station.station_id]);
-        } else {
-          // Xử lý nhắc nhở cảnh báo lặp lại sau một khoảng chu kỳ
-          const lastAlerted = station.last_alerted_ts ? new Date(station.last_alerted_ts).getTime() : 0;
-          const secondsSinceLastAlert = Math.floor((Date.now() - lastAlerted) / 1000);
+        }
 
-          if (secondsSinceLastAlert >= globalRepeatIntervalSecs) {
-            await sendTelegramNotification(message + `\n🔄 <i>(Nhắc lại cảnh báo mất kết nối định kỳ mỗi ${globalConfig.alert_interval_minutes} phút)</i>`);
+        if (shouldNotifyOffline) {
+          offlineAlertStations.push({
+            name: stationName,
+            detail: delayDetail,
+          });
+
+          if (!isNewOffline) {
             await db.query(`UPDATE public.logger_stations SET last_alerted_ts = NOW() WHERE station_id = $1;`, [station.station_id]);
           }
         }
       } else {
-        // --- LUỒNG TRẠM ĐANG ONLINE BÌNH THƯỜNG ---
         if (station.last_known_status === 'OFFLINE') {
-          // Phát hiện trạm từ sập mạng khôi phục thành công -> Bắn tin báo Online trở lại
-          const recoveryMessage = `🟢 <b>TÍN HIỆU PHỤC HỒI (ONLINE)</b>\n📌 Trạm: <b>${stationIdClean}</b> (${displayNameClean})\n✅ Thiết bị đã kết nối lại và truyền dữ liệu bình thường về hệ thống.`;
-          await sendTelegramNotification(recoveryMessage);
-          
           await db.query(`
             UPDATE public.logger_stations 
             SET last_known_status = 'ONLINE', 
@@ -109,8 +139,20 @@ async function checkSystemOfflineAlert() {
                 last_alerted_ts = NOW() 
             WHERE station_id = $1;
           `, [station.station_id]);
+
+          recoveryStations.push({
+            name: stationName,
+          });
         }
       }
+    }
+
+    if (offlineAlertStations.length > 0) {
+      await sendTelegramNotification(buildOfflineAlertMessage(offlineAlertStations, totalStations, globalTimeoutMinutes));
+    }
+
+    if (recoveryStations.length > 0) {
+      await sendTelegramNotification(buildRecoveryMessage(recoveryStations, totalStations));
     }
   } catch (err) {
     console.error("❌ [ALERT_ENGINE] Lỗi tiến trình quét tự động:", err.message);
