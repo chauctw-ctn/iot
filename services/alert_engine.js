@@ -25,25 +25,26 @@ function escapeHtml(value) {
 }
 
 function buildOfflineAlertMessage(alertStations, totalStations, timeoutMinutes) {
-  const lines = alertStations.map((station) => `• <b>${station.name}</b>: ${station.detail}`);
+  const lines = alertStations.map((station, index) => {
+    const parts = [`${index + 1}. <b>${station.name}</b>`];
+    if (station.stationId) parts.push(`<code>${station.stationId}</code>`);
+    parts.push(`- ${station.detail}`);
+    return parts.join(' ');
+  });
 
   return [
-    `🔴 <b>CẢNH BÁO MẤT KẾT NỐI</b>`,
-    `📊 ${alertStations.length}/${totalStations} trạm đang lỗi`,
-    `⏱️ Ngưỡng trễ: ${timeoutMinutes} phút`,
+    `🔴 <b>CẢNH BÁO TRẠM OFFLINE</b>`,
+    `📊 Offline: <b>${alertStations.length}</b>/<b>${totalStations}</b> trạm`,
+    `⏱️ Ngưỡng mất kết nối: ${timeoutMinutes} phút`,    
     '',
     ...lines,
   ].join('\n');
 }
 
-function buildRecoveryMessage(recoveryStations, totalStations) {
-  const lines = recoveryStations.map((station) => `• <b>${station.name}</b>: Đã kết nối lại`);
-
+function buildAllOnlineMessage(totalStations) {
   return [
-    `🟢 <b>TRẠM KHÔI PHỤC KẾT NỐI</b>`,
-    `📊 ${recoveryStations.length}/${totalStations} trạm đã online lại`,
-    '',
-    ...lines,
+    `🟢 <b>TOÀN BỘ CÁC TRẠM ĐANG ONLINE</b>`,
+    `📊 Online: <b>${totalStations}</b>/<b>${totalStations}</b> trạm`,
   ].join('\n');
 }
 
@@ -91,7 +92,7 @@ async function checkSystemOfflineAlert() {
     const checkedStations = await db.query(queryStr);
     const totalStations = checkedStations.rows.length;
     const offlineAlertStations = [];
-    const recoveryStations = [];
+    let offlineStationCount = 0;
 
     for (let station of checkedStations.rows) {
       const delayMinutes = station.delay_minutes !== null ? Math.floor(station.delay_minutes) : 999999;
@@ -102,6 +103,7 @@ async function checkSystemOfflineAlert() {
       const stationName = escapeHtml(station.display_name || `Trạm ${station.station_id}`);
 
       if (isCurrentlyOffline) {
+        offlineStationCount += 1;
         const delayDetail = (station.max_current_ts === null || station.max_data_ts === null)
           ? 'Không có dữ liệu'
           : `Trễ ${delayMinutes} phút`;
@@ -123,6 +125,7 @@ async function checkSystemOfflineAlert() {
         if (shouldNotifyOffline) {
           offlineAlertStations.push({
             name: stationName,
+            stationId: station.station_id,
             detail: delayDetail,
           });
 
@@ -139,21 +142,16 @@ async function checkSystemOfflineAlert() {
                 last_alerted_ts = NOW() 
             WHERE station_id = $1;
           `, [station.station_id]);
-
-          recoveryStations.push({
-            name: stationName,
-          });
         }
       }
     }
 
     if (offlineAlertStations.length > 0) {
       await sendTelegramNotification(buildOfflineAlertMessage(offlineAlertStations, totalStations, globalTimeoutMinutes));
+    } else if (totalStations > 0 && offlineStationCount === 0) {
+      await sendTelegramNotification(buildAllOnlineMessage(totalStations));
     }
 
-    if (recoveryStations.length > 0) {
-      await sendTelegramNotification(buildRecoveryMessage(recoveryStations, totalStations));
-    }
   } catch (err) {
     console.error("❌ [ALERT_ENGINE] Lỗi tiến trình quét tự động:", err.message);
   }

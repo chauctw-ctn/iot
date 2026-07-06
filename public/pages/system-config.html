@@ -1,5 +1,49 @@
-<div class="page-card animate-fade-in" style="display: flex; flex-direction: column; gap: 5px; height: 100%; box-sizing: border-box; padding: 5px;">
+<div class="matrix-config-context page-card animate-fade-in" style="display: flex; flex-direction: column; gap: 5px; height: 100%; box-sizing: border-box; padding: 5px;">
     
+    <style>
+        /* 1. Reset thuộc tính ô nhập liệu và select box */
+        .matrix-config-context input, 
+        .matrix-config-context select, 
+        .matrix-config-context textarea {
+            min-height: unset !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 2. ĐẶC TRỊ CHECKBOX: Loại bỏ hoàn toàn min-height 40px, padding và border mặc định */
+        .matrix-config-context input[type="checkbox"] {
+            min-height: unset !important;
+            height: 16px !important;
+            width: 16px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+        }
+
+        /* 3. Khắc phục nút bấm bị phình to */
+        .matrix-config-context button {
+            min-height: unset !important;
+        }
+
+        /* 4. Reset padding cho table theo đúng inline-style thiết kế */
+        .matrix-config-context table th, 
+        .matrix-config-context table td {
+            padding: unset !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
+        /* 5. Ẩn nút tăng giảm (spin spinners) trên các ô input number để tránh lệch layout */
+        .matrix-config-context input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .matrix-config-context input[type="number"]::-webkit-outer-spin-button,
+        .matrix-config-context input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+
     <div id="customToastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
 
     <div style="background: #fff; padding: 10px 15px; border-radius: 0px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -96,7 +140,6 @@
         'nitrat': 'Nitrat', 'no3': 'Nitrat', 'ph': 'Độ pH', 'tds': 'TDS', 'totalindex': 'Tổng chỉ số'
     };
 
-    // 🟢 HÀM HIỂN THỊ TOAST THÔNG BÁO HOÀN TOÀN MỚI
     function showToast(message, type = 'success') {
         const container = document.getElementById('customToastContainer');
         if (!container) return;
@@ -114,13 +157,11 @@
         toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
         container.appendChild(toast);
 
-        // Kích hoạt hiệu ứng bay vào
         setTimeout(() => {
             toast.style.opacity = '1';
             toast.style.transform = 'translateY(0)';
         }, 10);
 
-        // Tự động biến mất sau 3 giây
         setTimeout(() => {
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(-10px)';
@@ -211,15 +252,17 @@
             if (isCurrentlyMappedStation) tr.style.background = "#fffbeb";
 
             tr.innerHTML = `
-                <td style="padding:10px; text-align:center; font-weight:600; color:#64748b; border-right:1px solid #e2e8f0;">${index + 1}</td>
-                <td style="padding:10px; font-weight:700; color:#1e293b; border-right:1px solid #e2e8f0; background:rgba(16,185,129,0.05);">${targetId}</td>
-                <td style="padding:10px; border-right:1px solid #e2e8f0;"><input type="text" id="displayName_${targetId}" value="${targetStation.display_name || ''}" placeholder="Tên trạm..." style="width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:0px; font-size:0.8rem;"></td>
-                <td style="padding:10px; border-right:1px solid #e2e8f0; display:flex; flex-direction:column; gap:4px; border-bottom:0;">
-                    <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LAT:</span><input type="number" step="any" id="lat_${targetId}" value="${targetStation.lat !== null ? targetStation.lat : ''}" style="width:100%; padding:2px; border:1px solid #cbd5e1; border-radius:0px; font-size:11px;"></div>
-                    <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LNG:</span><input type="number" step="any" id="lng_${targetId}" value="${targetStation.lng !== null ? targetStation.lng : ''}" style="width:100%; padding:2px; border:1px solid #cbd5e1; border-radius:0px; font-size:11px;"></div>
+                <td style="padding:10px !important; text-align:center; font-weight:600; color:#64748b; border-right:1px solid #e2e8f0;">${index + 1}</td>
+                <td style="padding:10px !important; font-weight:700; color:#1e293b; border-right:1px solid #e2e8f0; background:rgba(16,185,129,0.05);">${targetId}</td>
+                <td style="padding:10px !important; border-right:1px solid #e2e8f0;"><input type="text" id="displayName_${targetId}" value="${targetStation.display_name || ''}" placeholder="Tên trạm..." style="width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:0px; font-size:0.8rem; min-height:28px !important; height:28px !important;"></td>
+                <td style="padding:10px !important; border-right:1px solid #e2e8f0;">
+                    <div style="display:flex; flex-direction:column; gap:4px; width: 100%;">
+                        <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LAT:</span><input type="number" step="any" id="lat_${targetId}" value="${targetStation.lat !== null ? targetStation.lat : ''}" style="width:100%; min-height:20px !important; height:20px !important; padding:2px; border:1px solid #cbd5e1; border-radius:0px; font-size:11px; box-sizing:border-box;"></div>
+                        <div style="display:flex; align-items:center; gap:4px;"><span style="font-size:9px; color:#94a3b8; font-weight:700; width:22px;">LNG:</span><input type="number" step="any" id="lng_${targetId}" value="${targetStation.lng !== null ? targetStation.lng : ''}" style="width:100%; min-height:20px !important; height:20px !important; padding:2px; border:1px solid #cbd5e1; border-radius:0px; font-size:11px; box-sizing:border-box;"></div>
+                    </div>
                 </td>
-                <td style="padding:10px; border-right:1px solid #e2e8f0; text-align:center; background:#f8fafc;">
-                    <span style="padding:2px 6px; border-radius:0px; font-size:10px; font-weight:700; display:inline-block; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#166534':'#991b1b'}; border:1px solid ${isOnline?'#bbf7d0':'#fca5a5'};">
+                <td style="padding:10px !important; border-right:1px solid #e2e8f0; text-align:center; background:#f8fafc;">
+                    <span style="padding:2px 6px; border-radius:0px; font-size:10px; font-weight:700; display:inline-block; background:${isOnline ? '#dcfce7':'#fee2e2'}; color:${isOnline ? '#166534':'#991b1b'}; border:1px solid ${isOnline?'#bbf7d0':'#fca5a5'}; min-height:unset !important;">
                         ${isOnline ? '🟢 Online' : '🔴 Offline'}
                     </span>
                     <div style="font-size:10px; color:#64748b; margin-top:5px; font-weight:500;">Hứng: ${getRelativeTimeString(targetStation.current_ts)}</div>
@@ -228,9 +271,7 @@
             `;
 
             const tdTargetTags = document.createElement('td');
-            tdTargetTags.style.padding = "8px";
-            tdTargetTags.style.borderRight = "1px solid #e2e8f0";
-            tdTargetTags.style.background = "#f8fafc";
+            tdTargetTags.style.cssText = "padding:8px !important; border-right:1px solid #e2e8f0; background:#f8fafc;";
             
             if (targetStation.tags && Object.keys(targetStation.tags).length > 0) {
                 Object.keys(targetStation.tags).forEach(tagKey => {
@@ -239,11 +280,9 @@
                     const cleanKey = tagKey.toLowerCase().trim();
                     const friendlyLabel = TAG_LABELS[cleanKey] || tagKey;
 
-                    // 🟢 CẢI TIẾN 1: Làm tròn 2 số lẻ và định dạng số kiểu Việt Nam (dùng dấu phẩy)
                     let currentValueDisplay = '';
                     if (tag.value !== null && tag.value !== undefined) {
                         const parsedVal = parseFloat(tag.value);
-                        // Làm tròn 2 số lẻ và chuyển dấu chấm thành dấu phẩy chuẩn Việt Nam
                         currentValueDisplay = parsedVal.toFixed(2).replace('.', ',');
                     } else {
                         currentValueDisplay = '-';
@@ -254,17 +293,16 @@
                     itemBlock.setAttribute('data-tag-key', tagKey);
                     itemBlock.style.cssText = "padding:5px; background:#fff; border:1px solid #e2e8f0; border-radius:0px; margin-bottom:4px; box-shadow:0 1px 2px rgba(0,0,0,0.02);";
                     
-                    // 🟢 CẢI TIẾN 2: Gom tên tag và giá trị vào chung một khối nối liền nhau: ${friendlyLabel}: ${currentValueDisplay}
                     itemBlock.innerHTML = `
                         <div style="display:flex; justify-content: space-between; align-items:center; font-size:11px; font-weight:700; border-bottom:1px dashed #f1f5f9; padding-bottom:3px; margin-bottom:4px; gap: 8px;">
                             <span style="flex:1; color:${isMapped ? '#c2410c':'#334155'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                                 ${friendlyLabel}: <span style="color:#0284c7; font-weight:800;">${currentValueDisplay}</span> ${isMapped ? `(←${tag.original_sender})` : ''}
                             </span>
-                            <input type="checkbox" id="thresholdEnable_${targetId}_${tagKey}" ${tag.threshold_enabled ? 'checked' : ''} style="cursor:pointer; transform: scale(0.9); margin-left: auto;">
+                            <input type="checkbox" id="thresholdEnable_${targetId}_${tagKey}" ${tag.threshold_enabled ? 'checked' : ''} style="cursor:pointer; transform: scale(0.9); margin-left: auto; width:16px; min-width:16px; height:16px; min-height:16px !important; padding:0;">
                         </div>
                         <div style="display:flex; gap:6px;">
-                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Min:</span><input type="number" step="any" id="minTh_${targetId}_${tagKey}" value="${tag.min_value !== null ? tag.min_value : ''}" style="width:45px; padding:1px; border:1px solid #cbd5e1; border-radius:0px; font-size:10px; text-align:center;"></div>
-                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Max:</span><input type="number" step="any" id="maxTh_${targetId}_${tagKey}" value="${tag.max_value !== null ? tag.max_value : ''}" style="width:45px; padding:1px; border:1px solid #cbd5e1; border-radius:0px; font-size:10px; text-align:center;"></div>
+                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Min:</span><input type="number" step="any" id="minTh_${targetId}_${tagKey}" value="${tag.min_value !== null ? tag.min_value : ''}" style="width:45px; min-height:18px !important; height:18px !important; padding:1px; border:1px solid #cbd5e1; border-radius:0px; font-size:10px; text-align:center; box-sizing:border-box;"></div>
+                            <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:9px; color:#94a3b8; font-weight:700;">Max:</span><input type="number" step="any" id="maxTh_${targetId}_${tagKey}" value="${tag.max_value !== null ? tag.max_value : ''}" style="width:45px; min-height:18px !important; height:18px !important; padding:1px; border:1px solid #cbd5e1; border-radius:0px; font-size:10px; text-align:center; box-sizing:border-box;"></div>
                         </div>
                     `;
                     tdTargetTags.appendChild(itemBlock);
@@ -275,12 +313,10 @@
             tr.appendChild(tdTargetTags);
 
             const tdSourceSelect = document.createElement('td');
-            tdSourceSelect.style.padding = "10px";
-            tdSourceSelect.style.borderRight = "1px solid #e2e8f0";
-            tdSourceSelect.style.background = "rgba(37,99,235,0.02)";
+            tdSourceSelect.style.cssText = "padding:10px !important; border-right:1px solid #e2e8f0; background:rgba(37,99,235,0.02);";
             
             const select = document.createElement('select');
-            select.style.cssText = "width:100%; padding:5px; border:1px solid #cbd5e1; border-radius:0px; font-size:0.8rem; background:#fff; font-weight:500;";
+            select.style.cssText = "width:100%; min-height:30px !important; height:30px !important; padding:2px 5px; border:1px solid #cbd5e1; border-radius:0px; font-size:0.8rem; background:#fff; font-weight:500; box-sizing:border-box;";
             select.innerHTML = '<option value="">-- Chọn Trạm Cho --</option>';
             overviewData.forEach(item => {
                 if (item.logger_id !== targetId) {
@@ -298,8 +334,7 @@
             tr.appendChild(tdSourceSelect);
 
             const tdSourceTags = document.createElement('td');
-            tdSourceTags.style.padding = "8px";
-            tdSourceTags.style.borderRight = "1px solid #e2e8f0";
+            tdSourceTags.style.cssText = "padding:8px !important; border-right:1px solid #e2e8f0;";
             
             const tagsContainer = document.createElement('div');
             tagsContainer.id = `sourceTagsContainer_${targetId}`;
@@ -309,16 +344,15 @@
             loadSourceTagsForRow(savedSourceId, targetId, tagsContainer);
 
             const tdAction = document.createElement('td');
-            tdAction.style.padding = "10px";
-            tdAction.style.textAlign = "center";
+            tdAction.style.cssText = "padding:10px !important; text-align:center; border-left:1px solid #e2e8f0;";
             tdAction.innerHTML = `
                 <div style="display: flex; gap: 6px; justify-content: center; width: 100%;">
                     <button onclick="saveRowConfigMapping('${targetId}', '${select.value}', this.parentElement.parentElement.parentElement, this)" 
-                            style="flex: 1; padding: 6px 4px; background: #2563eb; color: #fff; border: none; border-radius: 0px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap;">
+                            style="flex: 1; min-height:28px !important; height:28px !important; padding: 0 4px; background: #2563eb; color: #fff; border: none; border-radius: 0px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap; box-sizing:border-box;">
                         <i class="fa-solid fa-floppy-disk"></i> LƯU
                     </button>
                     <button onclick="deleteConfigStation('${targetId}', this)" 
-                            style="flex: 1; padding: 6px 4px; background: #dc2626; color: #fff; border: none; border-radius: 0px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap;">
+                            style="flex: 1; min-height:28px !important; height:28px !important; padding: 0 4px; background: #dc2626; color: #fff; border: none; border-radius: 0px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap; box-sizing:border-box;">
                         <i class="fa-solid fa-trash-can"></i> XÓA
                     </button>
                 </div>
@@ -352,7 +386,7 @@
                     const label = document.createElement('label');
                     label.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:3px; background:#fff; border:1px solid #e2e8f0; border-radius:0px; font-size:11px; cursor:pointer;";
                     label.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:4px;"><input type="checkbox" name="sourceTags_${targetStationId}" value="${tagKey}" ${isAlreadyMapped ? 'checked' : ''}><span style="font-weight:600; color:#334155;">${friendlyName}</span></div>
+                        <div style="display:flex; align-items:center; gap:4px;"><input type="checkbox" name="sourceTags_${targetStationId}" value="${tagKey}" ${isAlreadyMapped ? 'checked' : ''} style="width:16px; min-width:16px; height:16px; min-height:16px !important; padding:0; cursor:pointer;"><span style="font-weight:600; color:#334155;">${friendlyName}</span></div>
                         <span style="font-size:10px; color:#94a3b8;">V: ${tagInfo.value}</span>
                     `;
                     container.appendChild(label);
@@ -362,7 +396,6 @@
         }
     }
 
-    // 🟢 HIỆU ỨNG PHẢN HỒI KHI LƯU HÀNG MA TRẬN
     window.saveRowConfigMapping = async function(targetStationId, sourceLoggerId, rowElement, btnElement) {
         const display_name = document.getElementById(`displayName_${targetStationId}`).value;
         const lat = document.getElementById(`lat_${targetStationId}`).value;
@@ -382,7 +415,6 @@
             alert_thresholds.push({ tag_key: tagKey, enabled, min_value, max_value });
         });
 
-        // Đổi trạng thái nút bấm sang Loading
         const oldBtnText = btnElement.innerHTML;
         btnElement.disabled = true;
         btnElement.style.background = '#64748b';
@@ -403,7 +435,6 @@
 
             const result = await response.json();
             if (response.ok && result.success) {
-                // Đổi nút thành tích xanh thành công trước khi hoàn trả dữ liệu
                 btnElement.style.background = '#10b981';
                 btnElement.innerHTML = '<i class="fa-solid fa-check"></i> XONG';
                 showToast(`Đã đồng bộ cấu hình [${targetStationId}] thành công!`, 'success');
@@ -433,15 +464,12 @@
         }
     };
 
-    // 🟢 HIỆU ỨNG PHẢN HỒI KHI XÓA TRẠM (BỎ CONFIRM POPUP)
     window.deleteConfigStation = async function(stationId, btnElement) {
-        // Thay thế confirm bằng hiệu ứng cảnh báo xác nhận ảo ngay trên nút trong 3 giây
         if (!btnElement.dataset.confirmed) {
             btnElement.dataset.confirmed = "true";
-            btnElement.style.background = '#d97706'; // Đổi sang màu cam để cảnh báo
+            btnElement.style.background = '#d97706'; 
             btnElement.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ẤN LẠI ĐỂ XÓA';
             
-            // Nếu quá 3 giây không ấn lại thì khôi phục nút như cũ
             setTimeout(() => {
                 if (btnElement.dataset.confirmed === "true") {
                     delete btnElement.dataset.confirmed;
@@ -452,7 +480,6 @@
             return;
         }
 
-        // Thực thi lệnh xóa khi người dùng đã ấn lần thứ 2 xác nhận
         const targetRow = document.getElementById(`row-${stationId}`);
         btnElement.disabled = true;
         btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> THỰC THI';
@@ -513,7 +540,6 @@
         }
     }
 
-    // 🟢 HIỆU ỨNG PHẢN HỒI LƯU CẤU HÌNH TIẾN TRÌNH BOT TELEGRAM
     window.saveTelegramConfig = async function(btnElement) {
         const bot_token = document.getElementById('tele_bot_token').value.trim();
         const chat_id = document.getElementById('tele_chat_id').value.trim();
@@ -565,7 +591,6 @@
         }
     };
 
-    // 🟢 HIỆU ỨNG PHẢN HỒI KHI TEST ĐƯỜNG TRUYỀN TELEGRAM BOT
     window.testTelegram = async function(btnElement) {
         const bot_token = document.getElementById('tele_bot_token').value.trim();
         const chat_id = document.getElementById('tele_chat_id').value.trim();
