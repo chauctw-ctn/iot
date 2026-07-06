@@ -93,6 +93,7 @@ async function checkSystemOfflineAlert() {
     const totalStations = checkedStations.rows.length;
     const offlineAlertStations = [];
     let offlineStationCount = 0;
+    let stationsRecoveredFromOffline = 0;
 
     for (let station of checkedStations.rows) {
       const delayMinutes = station.delay_minutes !== null ? Math.floor(station.delay_minutes) : 999999;
@@ -135,6 +136,7 @@ async function checkSystemOfflineAlert() {
         }
       } else {
         if (station.last_known_status === 'OFFLINE') {
+          stationsRecoveredFromOffline += 1;
           await db.query(`
             UPDATE public.logger_stations 
             SET last_known_status = 'ONLINE', 
@@ -148,7 +150,7 @@ async function checkSystemOfflineAlert() {
 
     if (offlineAlertStations.length > 0) {
       await sendTelegramNotification(buildOfflineAlertMessage(offlineAlertStations, totalStations, globalTimeoutMinutes));
-    } else if (totalStations > 0 && offlineStationCount === 0) {
+    } else if (totalStations > 0 && stationsRecoveredFromOffline > 0 && offlineStationCount === 0) {
       await sendTelegramNotification(buildAllOnlineMessage(totalStations));
     }
 
